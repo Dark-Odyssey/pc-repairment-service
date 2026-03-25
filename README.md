@@ -22,4 +22,4 @@ pip install -r requirements.txt
 python app/main.py
 ```
 
-4. Open [link](http://localhost:8080) to access the app or open [documentation link](http://localhost:8080/docs#/) to access entrypoints.
+4. Open [link](http://localhost:8080) to access the app or open [documentation link](http://localhost:8080/docs#/) to access endpoints.
