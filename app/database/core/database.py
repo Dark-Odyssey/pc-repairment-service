@@ -26,5 +26,5 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 DataBase = Annotated[AsyncSession, Depends(get_db)]
 
-class Base(DeclarativeBase):
+class BaseORM(DeclarativeBase):
     pass
