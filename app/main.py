@@ -2,11 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from tools.init_db import create_database
+from tools.init_db import create_database, add_admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_database()
+    await add_admin()
     yield
 
 app = FastAPI(lifespan=lifespan)

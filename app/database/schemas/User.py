@@ -4,11 +4,16 @@ from tools.types import RoleEnum
 
 
 
-class UserDTO(BaseModel):
+class UserCreateDTO(BaseModel):
     first_name: str = Field(max_length=50)
     last_name: str = Field(max_length=50)
     email: EmailStr = Field(max_length=50)
-    password: str
     role: RoleEnum
-    is_active: bool = False    created_at: datetime
+    password: str = Field(min_length=8)
+    is_active: bool = False
+
+
+class UserDTO(UserCreateDTO):
+    id: int
+    created_at: datetime
     updated_at: datetime

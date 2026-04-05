@@ -1,4 +1,4 @@
 from .OrderStatusHistory import OrderStatusHistoryORM
 from .PasswordResets import PasswordResetsORM
-from .RepairOrderModel import RepairOrdersORM
-from .UserModel import UserORM
+from .RepairOrder import RepairOrdersORM
+from .User import UserORM
