@@ -2,6 +2,7 @@ from enum import StrEnum, auto
 class RoleEnum(StrEnum):
     ADMIN = "Admin"
     WORKER = "Worker"
+    USER = "User"
 
 class StatusEnum(StrEnum):
     ACCEPTED = "Accepted"

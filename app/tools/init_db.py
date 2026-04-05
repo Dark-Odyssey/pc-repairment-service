@@ -1,5 +1,5 @@
 from database.core.database import async_engine, BaseORM
-from database.models.model import EmployeesORM
+from database.models.model import UserORM
 
 
 async def create_database():

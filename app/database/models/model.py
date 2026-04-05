@@ -8,37 +8,29 @@ from tools.types import RoleEnum, StatusEnum
 intpk = Annotated[int, mapped_column(primary_key=True)]
 
 
-class EmployeesORM(BaseORM):
-    __tablename__ = "employees"
+class UserORM(BaseORM):
+    __tablename__ = "user"
     id: Mapped[intpk]
-    login: Mapped[str] = mapped_column(String(50), unique=True)
+    first_name: Mapped[str] = mapped_column(String(50))
+    last_name: Mapped[str] = mapped_column(String(50))
+    # login: Mapped[str] = mapped_column(String(50), unique=True)
     email: Mapped[str] = mapped_column(String(50), unique=True)
     password_hash: Mapped[str]
     role: Mapped[RoleEnum]
     is_active: Mapped[bool]
-    must_change_password: Mapped[bool]
+    # must_change_password: Mapped[bool]
     reset_token_hash: Mapped[str]
     reset_token_expires_at: Mapped[datetime]
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime]
 
 
-class ClientsORM(BaseORM):
-    __tablename__ = "clients"
-    id: Mapped[intpk]
-    first_name: Mapped[str] = mapped_column(String(50))
-    last_name: Mapped[str] = mapped_column(String(50))
-    email: Mapped[str] = mapped_column(String(50), unique=True)
-    phone: Mapped[str] = mapped_column(String(15), unique=True)
-    created_at: Mapped[datetime]
-    updated_at: Mapped[datetime]
-
 
 class RepairOrdersORM(BaseORM):
     __tablename__ = "repair_orders"
     id: Mapped[intpk]
     order_number: Mapped[str] = mapped_column(String(50),unique=True)
-    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"))
+    client_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     device_type: Mapped[str] = mapped_column(String(100))
     device_model: Mapped[str] = mapped_column(String(100))
     issue_description: Mapped[str] = mapped_column(String(256))
@@ -49,8 +41,8 @@ class RepairOrdersORM(BaseORM):
     access_code_hash: Mapped[str]
     access_code_sent_at: Mapped[datetime]
     service_note: Mapped[str] = mapped_column(String(256))
-    created_by_employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
-    updated_by_employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
+    created_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    updated_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime]
 
@@ -62,6 +54,6 @@ class OrderStatusHistory(BaseORM):
     new_status: Mapped[StatusEnum]
     old_estimated_completion_date: Mapped[date]
     new_estimated_completion_date: Mapped[date]
-    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
-    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
+    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     changed_at: Mapped[datetime]
