@@ -1,7 +1,7 @@
 from typing import Sequence
 from database.repos import UserRepo
 from database.models import UserORM
-from schemas import UserFilterDTO
+from schemas import UserFilterDTO, UserCreateDTO, UserDTO
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class UserService:
@@ -11,3 +11,6 @@ class UserService:
     
     async def show_users(self, filters: UserFilterDTO) -> Sequence[UserORM]:
         return await self.__userRepo.get_all_users(filters)
+    
+    async def add_user(self, user: UserCreateDTO) -> UserORM:
+        return await self.__userRepo.create_user(user)

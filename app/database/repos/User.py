@@ -36,13 +36,21 @@ class UserRepo(BaseRepo):
     ) -> Sequence[UserORM]:
         query = (select(UserORM))
 
-        filter_dict = filter_schema.model_dump(exclude_none=True, exclude={"limit", "offset"})
-        for key, value in filter_dict.items():
-            if not getattr(UserORM, key):
-                continue
-            query = query.where(
-                getattr(UserORM, key) == value
-            )
+        if filter_schema.first_name:
+            query = query.where(UserORM.first_name.ilike(f"%{filter_schema.first_name}%"))
+
+        if filter_schema.last_name:
+            query = query.where(UserORM.last_name.ilike(f"%{filter_schema.last_name}%"))
+
+        if filter_schema.email:
+            query = query.where(UserORM.email.ilike(f"%{filter_schema.email}%"))
+        
+        if filter_schema.role:
+            query = query.where(UserORM.role==filter_schema.role)
+        
+        if filter_schema.is_active is not None:
+            query = query.where(UserORM.is_active==filter_schema.is_active)
+
         result = await self.session.execute(query.limit(filter_schema.limit).offset(filter_schema.offset))
         result = result.scalars().all()
         return result
