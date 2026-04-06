@@ -2,7 +2,7 @@ from database.core.database import async_engine, BaseORM, AsyncSessionGenerator
 from database.core.database import DataBase
 from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetsORM
 from database.repos import UserRepo
-from database.schemas import UserCreateDTO
+from schemas import UserCreateDTO
 from tools.types import RoleEnum
 
 async def create_database():
@@ -21,5 +21,5 @@ async def add_admin():
     async with AsyncSessionGenerator() as session:
         try:
             await UserRepo(session=session).create_user(admin)
-        except Exception as e:
-            print(e)
+        except Exception:
+            print("Admin already in database")

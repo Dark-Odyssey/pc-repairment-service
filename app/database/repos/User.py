@@ -1,8 +1,11 @@
+from typing import Sequence
+from datetime import datetime
+from sqlalchemy import select
+from tools.types import RoleEnum
 from security.encryption import Crypt
 from database.models import UserORM
-from database.schemas.User import UserCreateDTO
+from schemas import UserCreateDTO, UserDTO, UserFilterDTO 
 from .BaseRepo import BaseRepo
-from datetime import datetime
 
 class UserRepo(BaseRepo):
 
@@ -27,3 +30,19 @@ class UserRepo(BaseRepo):
         await self.session.refresh(user_db)
         return user_db
 
+    async def get_all_users(
+        self,
+        filter_schema: UserFilterDTO
+    ) -> Sequence[UserORM]:
+        query = (select(UserORM))
+
+        filter_dict = filter_schema.model_dump(exclude_none=True, exclude={"limit", "offset"})
+        for key, value in filter_dict.items():
+            if not getattr(UserORM, key):
+                continue
+            query = query.where(
+                getattr(UserORM, key) == value
+            )
+        result = await self.session.execute(query.limit(filter_schema.limit).offset(filter_schema.offset))
+        result = result.scalars().all()
+        return result

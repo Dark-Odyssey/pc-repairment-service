@@ -1,3 +1,4 @@
+from routers.Users import router as user_router
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -11,6 +12,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(user_router)
 
 app.add_middleware(
     CORSMiddleware,
