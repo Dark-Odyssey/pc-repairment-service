@@ -13,3 +13,6 @@ async def get_users(session: DataBase, filters: UserFilterDTO = Depends()):
 @router.post("/users", response_model=UserDTO)
 async def create_users(user: UserCreateDTO, session: DataBase):
     return await UserService(session=session).add_user(user)
+
+# @router.patch("/users", response_model=UserDTO)
+# async def put_user(user: )

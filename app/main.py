@@ -1,4 +1,4 @@
-from routers.Users import router as user_router
+from routers.User import router as user_router
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse

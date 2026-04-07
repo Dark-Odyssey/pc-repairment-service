@@ -22,12 +22,13 @@ class UserDTO(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class UserUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    email: EmailStr | None = None
+    role: RoleEnum | None = None
+    is_active: bool | None = None
 
-class UserFilterDTO(BaseModel):
+class UserFilterDTO(UserUpdate):
         offset: int = Field(default=0)
         limit: int = Field(default=10)
-        first_name: str | None = None
-        last_name: str | None = None
-        email: EmailStr | None = None
-        role: RoleEnum | None = None
-        is_active: bool | None = None
