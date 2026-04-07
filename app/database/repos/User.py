@@ -4,7 +4,7 @@ from sqlalchemy import select
 from tools.types import RoleEnum
 from security.encryption import Crypt
 from database.models import UserORM
-from schemas import UserCreateDTO, UserDTO, UserFilterDTO 
+from schemas import UserCreateDTO, UserDTO, UserFilterDTO , UserUpdate
 from .BaseRepo import BaseRepo
 
 class UserRepo(BaseRepo):
@@ -18,7 +18,7 @@ class UserRepo(BaseRepo):
             first_name=user.first_name,
             last_name=user.last_name,
             email=user.email,
-            password_hash=await Crypt.hash_password(user.password),
+            password_hash=Crypt.hash_password(user.password),
             role=user.role,
             is_active=user.is_active,
             created_at=now,
@@ -30,10 +30,7 @@ class UserRepo(BaseRepo):
         await self.session.refresh(user_db)
         return user_db
 
-    async def get_all_users(
-        self,
-        filter_schema: UserFilterDTO
-    ) -> Sequence[UserORM]:
+    async def get_all_users(self,filter_schema: UserFilterDTO) -> Sequence[UserORM]:
         query = (select(UserORM))
 
         if filter_schema.first_name:
@@ -54,3 +51,21 @@ class UserRepo(BaseRepo):
         result = await self.session.execute(query.limit(filter_schema.limit).offset(filter_schema.offset))
         result = result.scalars().all()
         return result
+
+
+    async def select_user_by_id(self, user_id: int) -> UserORM | None:
+        query = (
+            select(UserORM)
+            .where(UserORM.id == user_id)
+            )
+        result = await self.session.execute(query)
+        return result.scalars().first()
+
+
+    async def update_user(self, user_db: UserORM, user_schema: UserUpdate) -> UserORM:
+        user_update_dict = user_schema.model_dump(exclude_none=True)
+        for key, value in user_update_dict.items():
+            setattr(user_db, key, value)
+        await self.session.commit()
+        await self.session.refresh(user_db)
+        return user_db

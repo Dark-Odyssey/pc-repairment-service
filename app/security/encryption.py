@@ -4,7 +4,7 @@ import bcrypt
 
 class Crypt:
     @staticmethod
-    async def hash_password(
+    def hash_password(
         plain_password: str
     ) -> str:
         password_bytes = plain_password.encode()
@@ -13,7 +13,7 @@ class Crypt:
         return password_hash.decode("utf-8")
     
     @staticmethod
-    async def check_password(
+    def check_password(
         plain_password: str,
         hashed_password: str
     ) -> bool:

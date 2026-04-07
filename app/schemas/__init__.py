@@ -1,1 +1,1 @@
-from schemas.User import UserCreateDTO, UserDTO, UserFilterDTO
+from schemas.User import UserCreateDTO, UserDTO, UserFilterDTO, UserUpdate
