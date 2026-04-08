@@ -1,5 +1,4 @@
-from database.core.database import async_engine, BaseORM, AsyncSessionGenerator
-from database.core.database import DataBase
+from core.database import async_engine, BaseORM, AsyncSessionGenerator, DataBase
 from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetsORM
 from database.repos import UserRepo
 from schemas import UserCreateDTO

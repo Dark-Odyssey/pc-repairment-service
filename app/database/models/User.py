@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
-from database.core.database import BaseORM
+from core.database import BaseORM
 from tools.types import RoleEnum
 from .annotations import intpk, str_50
 

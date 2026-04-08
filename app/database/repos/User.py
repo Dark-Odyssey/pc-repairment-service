@@ -1,6 +1,7 @@
 from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select
+from datetime import datetime
 from tools.types import RoleEnum
 from security.encryption import Crypt
 from database.models import UserORM
@@ -66,6 +67,7 @@ class UserRepo(BaseRepo):
         user_update_dict = user_schema.model_dump(exclude_none=True)
         for key, value in user_update_dict.items():
             setattr(user_db, key, value)
+        user_db.updated_at = datetime.now()
         await self.session.flush()
         await self.session.refresh(user_db)
         return user_db
@@ -73,3 +75,11 @@ class UserRepo(BaseRepo):
     async def remove_user(self, user_db: UserORM) -> None:
         await self.session.delete(user_db)
         return
+    
+    async def select_user_by_email(self, email: str) -> UserORM | None:
+        query = (
+            select(UserORM)
+            .where(UserORM.email == email)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()

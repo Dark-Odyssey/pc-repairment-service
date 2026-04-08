@@ -1,6 +1,7 @@
 from time import time
+from jwt.exceptions import ExpiredSignatureError
 import jwt
-from database.core.config import settings
+from core.config import settings
 
 
 class JWTHandler:

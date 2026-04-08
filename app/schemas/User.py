@@ -9,7 +9,7 @@ class UserCreateDTO(BaseModel):
     last_name: str = Field(max_length=50)
     email: EmailStr = Field(max_length=50)
     role: RoleEnum
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=20)
     is_active: bool = False
 
 
@@ -37,3 +37,7 @@ class UserFilterDTO(BaseModel):
     is_active: bool | None = None
     offset: int = Field(default=0)
     limit: int = Field(default=10)
+
+class UserLogin(BaseModel):
+    email: EmailStr = Field(max_length=50)
+    password: str = Field(min_length=8, max_length=20)

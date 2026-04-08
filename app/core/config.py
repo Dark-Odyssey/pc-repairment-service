@@ -2,7 +2,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-HOME_PATH = Path(__file__).parent.parent.parent.parent
+HOME_PATH = Path(__file__).parent.parent.parent
 
 
 
@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_LIFE: int
     REFRESH_TOKEN_LIFE: int
+
+
+    CSRF_COOKIE_NAME: str = "scrf-token"
+    REFRESH_COOKIE_NAME: str = "refresh-token"
 
     @property
     def PRIVATE_KEY(self) -> str:
