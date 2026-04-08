@@ -10,10 +10,8 @@ class RoleChecker():
 
     async def __call__(self, user_db: Annotated[UserORM, Depends(get_user_from_access_token)]):
         if user_db.role not in self.allowed_roles:
-            print(self.allowed_roles)
-            print(user_db.role)
             raise HTTPException(status_code=403, detail="Access Forbidden")
-        return
+        return user_db
         
 access_admins = RoleChecker([RoleEnum.ADMIN])
 access_admins_workers = RoleChecker([RoleEnum.ADMIN, RoleEnum.WORKER])

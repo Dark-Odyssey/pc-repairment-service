@@ -5,7 +5,6 @@ from typing import Annotated
 from database.models import UserORM
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from core.config import settings
 
 security = HTTPBearer()
 
@@ -31,6 +30,6 @@ async def get_user_from_access_token(
         raise HTTPException(status_code=404, detail="User does not exist!")
 
     if not user_db.is_active:
-        raise HTTPException(status_code=403, detail="Access forbidden!")
+        raise HTTPException(status_code=403, detail="Account Blocked!")
 
     return user_db
