@@ -21,5 +21,6 @@ async def add_admin():
     async with AsyncSessionGenerator() as session:
         try:
             await UserRepo(session=session).create_user(admin)
+            await session.commit()
         except Exception:
             print("Admin already in database")

@@ -21,3 +21,10 @@ class UserService:
         if not user_db:
             raise HTTPException(status_code=404, detail="User not found!")
         return await self.__userRepo.update_user(user_db=user_db, user_schema=user_schema)
+    
+    async def delete_user(self, user_id: int) -> None:
+        user_db = await self.__userRepo.select_user_by_id(user_id=user_id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found!")
+        await self.__userRepo.remove_user(user_db=user_db)
+        return

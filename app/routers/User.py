@@ -21,3 +21,8 @@ async def create_users(user: UserCreateDTO, session: DataBase):
 @router.patch("/users/{user_id}", response_model=UserDTO)
 async def put_user(user: UserUpdate, user_id: int, session: DataBase):
     return await UserService(session=session).patch_user(user_id=user_id, user_schema=user)
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: int, session: DataBase) -> None:
+    return await UserService(session=session).delete_user(user_id=user_id)

@@ -26,7 +26,7 @@ class UserRepo(BaseRepo):
         )
 
         self.session.add(user_db)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(user_db)
         return user_db
 
@@ -59,13 +59,17 @@ class UserRepo(BaseRepo):
             .where(UserORM.id == user_id)
             )
         result = await self.session.execute(query)
-        return result.scalars().first()
+        return result.scalar_one_or_none()
 
 
     async def update_user(self, user_db: UserORM, user_schema: UserUpdate) -> UserORM:
         user_update_dict = user_schema.model_dump(exclude_none=True)
         for key, value in user_update_dict.items():
             setattr(user_db, key, value)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(user_db)
         return user_db
+
+    async def remove_user(self, user_db: UserORM) -> None:
+        await self.session.delete(user_db)
+        return
