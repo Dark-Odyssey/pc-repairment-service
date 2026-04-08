@@ -1,11 +1,12 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends
+from schemas.User import UserCreateAdminDTO, UserOutputDTO
 from core.config import settings
 from core.database import DataBase
 from protect.protect_route import refresh_tokens
 from services import UserService
 from fastapi.responses import Response
-from schemas import UserLogin, Tokens
+from schemas import UserLogin, Tokens, UserRegisterDTO
 
 
 
@@ -65,3 +66,7 @@ async def refresh(
         "token_type": "Bearer",
         "token": tokens.access_token
     }
+
+@router.post("/register", response_model=UserOutputDTO)
+async def create_users(user: UserRegisterDTO, session: DataBase):
+    return await UserService(session=session).register_user(user)

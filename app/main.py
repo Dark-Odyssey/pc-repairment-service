@@ -1,5 +1,6 @@
-from routers.User import router as user_router
+from routers.Admin import router as user_router
 from routers.Auth import router as auth_router
+from routers.Worker import router as worker_router
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -15,6 +16,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(worker_router)
 
 app.add_middleware(
     CORSMiddleware,

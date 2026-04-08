@@ -35,7 +35,7 @@ async def validate_db_user(session: AsyncSession, user_id: int, created_at: int)
 
 
     if not user_db:
-        raise HTTPException(status_code=404, detail="User does not exist!")
+        raise HTTPException(status_code=401, detail="Invalid token!")
 
     if int(user_db.updated_at.timestamp()) > created_at:
         raise HTTPException(status_code=401, detail="Invalid token!")
