@@ -2,7 +2,7 @@ from typing import Annotated, AsyncGenerator
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-from database.core.config import settings
+from core.config import settings
 
 async_engine = create_async_engine(
     url=settings.DATABASE_URL,
@@ -20,6 +20,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     db = AsyncSessionGenerator()
     try:
         yield db
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise e
     finally:
         await db.close()
 

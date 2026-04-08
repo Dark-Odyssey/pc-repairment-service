@@ -3,7 +3,7 @@ from .annotations import intpk
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import ForeignKey
 from tools.types import StatusEnum
-from database.core.database import BaseORM
+from core.database import BaseORM
 
 
 class OrderStatusHistoryORM(BaseORM):
