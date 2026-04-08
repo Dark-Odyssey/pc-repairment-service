@@ -10,4 +10,4 @@ router = APIRouter(prefix="/worker", tags=["Workers"])
 
 @router.post("/users", dependencies=[Depends(access_admins_workers)])
 async def create_user(user: UserCreateWorkerDTO, session: DataBase):
-    return await UserService(session=session).register_user(user)
+    return await UserService(session=session).register_user_worker(user)
