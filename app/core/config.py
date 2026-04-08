@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_LIFE: int
 
 
-    CSRF_COOKIE_NAME: str = "scrf-token"
+    CSRF_COOKIE_NAME: str = "x_csrf_token"
+    CSRF_HEADER_NAME: str = "X_CSRF_TOKEN"
     REFRESH_COOKIE_NAME: str = "refresh-token"
 
     @property

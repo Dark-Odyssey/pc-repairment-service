@@ -50,24 +50,8 @@ class UserService:
 
         if not user_db:
             raise HTTPException(status_code=400, detail="Incorrect creds!")
+
         if not Crypt.check_password(user.password, user_db.password_hash):
             raise HTTPException(status_code=400, detail="Incorrect creds!")
-        
-        csrf_token = token_hex(16)
 
-        access_payload = {
-            "sub": str(user_db.id),
-            "token_type": "access",
-        }
-        refresh_payload = {
-            "sub": str(user_db.id),
-            "token_type": "refresh",
-            "csrf": csrf_token
-        }
-
-        tokens = Tokens(
-            access_token=JWTHandler.make_jwt(payload=access_payload, lifetime=settings.ACCESS_TOKEN_LIFE),
-            refresh_token=JWTHandler.make_jwt(payload=refresh_payload, lifetime=settings.REFRESH_TOKEN_LIFE),
-            csrf_token=csrf_token
-        )
-        return tokens
+        return await JWTHandler.generate_tokens(user_db=user_db)

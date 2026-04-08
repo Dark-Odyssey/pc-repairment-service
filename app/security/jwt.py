@@ -1,5 +1,7 @@
+from secrets import token_hex
 from time import time
-from jwt.exceptions import ExpiredSignatureError
+from schemas import Tokens
+from database.models import UserORM
 import jwt
 from core.config import settings
 
@@ -8,6 +10,7 @@ class JWTHandler:
     __private_key = settings.PRIVATE_KEY
     __public_key = settings.PUBLIC_KEY
     __algorithm = settings.ALGORITHM
+
 
     @classmethod
     def make_jwt(
@@ -31,6 +34,7 @@ class JWTHandler:
         )
         return token
 
+
     @classmethod
     def decode_jwt(
         cls,
@@ -45,3 +49,26 @@ class JWTHandler:
             return payload
         except Exception:
             return None
+
+
+    @staticmethod
+    async def generate_tokens(user_db: UserORM) -> Tokens:
+        csrf_token = token_hex(16)
+
+        access_payload = {
+            "sub": str(user_db.id),
+            "token_type": "access",
+        }
+        refresh_payload = {
+            "sub": str(user_db.id),
+            "token_type": "refresh",
+            "csrf": csrf_token
+        }
+
+        tokens = Tokens(
+            access_token=JWTHandler.make_jwt(payload=access_payload, lifetime=settings.ACCESS_TOKEN_LIFE),
+            refresh_token=JWTHandler.make_jwt(payload=refresh_payload, lifetime=settings.REFRESH_TOKEN_LIFE),
+            csrf_token=csrf_token
+        )
+        return tokens
+
