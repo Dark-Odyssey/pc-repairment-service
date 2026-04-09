@@ -1,4 +1,4 @@
-from routers.Admin import router as user_router
+from routers.Admin import router as admin_router
 from routers.Auth import router as auth_router
 from routers.Worker import router as worker_router
 from contextlib import asynccontextmanager
@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(user_router)
+app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(worker_router)
 

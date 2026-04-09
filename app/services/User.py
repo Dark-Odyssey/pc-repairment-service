@@ -1,8 +1,6 @@
 from fastapi import HTTPException
-from typing import Sequence, Annotated
-from secrets import token_hex
+from typing import Sequence
 from database.models import UserORM
-from core.config import settings
 from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO
 from security import Crypt, JWTHandler
 from database.repos import UserRepo
