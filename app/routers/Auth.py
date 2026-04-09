@@ -1,4 +1,5 @@
 from typing import Annotated
+from pydantic import EmailStr
 from fastapi import APIRouter, Depends
 from schemas.User import UserOutputDTO
 from core.config import settings
@@ -78,3 +79,8 @@ async def logout(
     return {
         "msg": "Success!"
     }
+
+
+@router.post("/password-reset")
+async def reset_password(email: EmailStr):
+    pass

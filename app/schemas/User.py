@@ -3,8 +3,6 @@ from pydantic import BaseModel, Field, EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from tools.types import RoleEnum
 
-
-
 class UserCreateWorkerDTO(BaseModel):
     first_name: str = Field(max_length=50)
     last_name: str = Field(max_length=50)

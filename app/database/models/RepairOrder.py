@@ -10,7 +10,7 @@ class RepairOrdersORM(BaseORM):
     id: Mapped[intpk]
     order_number: Mapped[str] = mapped_column(String(50),unique=True)
     client_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
-    device_type: Mapped[str_100]
+    device_type_id: Mapped[int] = mapped_column(ForeignKey("device_type.id", ondelete="SET NULL"))
     device_model: Mapped[str_100]
     issue_description: Mapped[str_256]
     accepted_at: Mapped[datetime]
