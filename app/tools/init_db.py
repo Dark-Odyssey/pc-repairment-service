@@ -1,5 +1,5 @@
 from core.database import async_engine, BaseORM, AsyncSessionGenerator, DataBase
-from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetsORM, DeviceTypeORM
+from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetORM, DeviceTypeORM
 from database.repos import UserRepo
 from schemas import UserCreateAdminDTO, UserCreateFullDTO
 from tools.types import RoleEnum
