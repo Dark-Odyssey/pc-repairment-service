@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     CSRF_COOKIE_NAME: str = "x_csrf_token"
     CSRF_HEADER_NAME: str = "X_CSRF_TOKEN"
-    REFRESH_COOKIE_NAME: str = "refresh-token"
+    REFRESH_COOKIE_NAME: str = "refresh_token"
 
     @property
     def PRIVATE_KEY(self) -> str:

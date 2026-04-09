@@ -66,11 +66,11 @@ async def get_user_from_access_token(
     return await validate_db_user(session=session, user_id=int(user_id), created_at=created_at)
 
 
-async def refresh_tokens(
+async def get_user_from_refresh_token(
     session: DataBase,
     x_csrf_token: Annotated[str | None, Header(alias=settings.CSRF_HEADER_NAME)] = None,
     refresh_token: Annotated[str | None, Cookie(alias=settings.REFRESH_COOKIE_NAME)] = None,
-) -> Tokens:
+) -> UserORM:
     payload = await validate_token(token=refresh_token, token_type="refresh")
 
     if payload.get("csrf") != x_csrf_token:
@@ -82,6 +82,8 @@ async def refresh_tokens(
     if not user_id or not created_at:
         raise HTTPException(status_code=401, detail="Invalid Token!")
 
-    user_db = await validate_db_user(session=session, user_id=int(user_id), created_at=created_at)
+    return await validate_db_user(session=session, user_id=int(user_id), created_at=created_at)
 
+
+async def refresh_tokens(user_db: Annotated[UserORM, Depends(get_user_from_refresh_token)]) -> Tokens:
     return await JWTHandler.generate_tokens(user_db=user_db)
