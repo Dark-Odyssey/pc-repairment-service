@@ -83,7 +83,7 @@ class UserService:
         user_db = await self.__userRepo.select_user_by_email(email=user_email)
 
         if not user_db:
-            raise HTTPException(status_code=404, detail="User not found!")
+            raise HTTPException(status_code=401, detail="Invalid token!")
         
         token = token_hex(32)
 
@@ -99,7 +99,7 @@ class UserService:
     async def update_password(self, password: UpdatePasswordDTO, token: str) -> UserORM:
 
         if password.new_password != password.retry_password:
-            raise HTTPException(status_code=400, detail="paswords dont match!")
+            raise HTTPException(status_code=400, detail="paswords don't match!")
         
         hashed_token = sha256(token.encode()).hexdigest()
 
