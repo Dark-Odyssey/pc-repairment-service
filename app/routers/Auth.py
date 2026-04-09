@@ -1,18 +1,15 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends
+from schemas.User import UserOutputDTO
 from core.config import settings
 from core.database import DataBase
-from protect.protect_route import refresh_tokens
+from protect.protect_route import refresh_tokens, get_user_from_refresh_token
 from services import UserService
 from fastapi.responses import Response
-from schemas import UserLogin, Tokens
-
+from schemas import UserLogin, Tokens, UserRegisterDTO
 
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
-
-
-
 
 
 @router.post("/login", status_code=200)
@@ -64,4 +61,20 @@ async def refresh(
     return {
         "token_type": "Bearer",
         "token": tokens.access_token
+    }
+
+
+@router.post("/register", response_model=UserOutputDTO)
+async def create_users(user: UserRegisterDTO, session: DataBase):
+    return await UserService(session=session).register_user(user)
+
+
+@router.post("/logout", dependencies=[Depends(get_user_from_refresh_token)])
+async def logout(
+    response: Response,
+):
+    response.delete_cookie(settings.REFRESH_COOKIE_NAME)
+    response.delete_cookie(settings.CSRF_COOKIE_NAME)
+    return {
+        "msg": "Success!"
     }

@@ -1,7 +1,7 @@
 from core.database import async_engine, BaseORM, AsyncSessionGenerator, DataBase
 from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetsORM
 from database.repos import UserRepo
-from schemas import UserCreateDTO
+from schemas import UserCreateAdminDTO, UserCreateFullDTO
 from tools.types import RoleEnum
 
 async def create_database():
@@ -9,17 +9,18 @@ async def create_database():
         await conn.run_sync(BaseORM.metadata.create_all)
 
 async def add_admin():
-    admin = UserCreateDTO(
+    admin = UserCreateFullDTO(
         first_name="Ivan",
         last_name="Poliakov",
-        email="ivan_poliakov@gmail.com",
+        phone_number="+48 123 456 789", # type: ignore
+        email="user@example.com",
         role=RoleEnum.ADMIN,
-        password="vaniahuesos",
+        password="stringst",
         is_active=True
     )
     async with AsyncSessionGenerator() as session:
         try:
-            await UserRepo(session=session).create_user(admin)
+            await UserRepo(session=session).create_user_full(admin)
             await session.commit()
         except Exception:
             print("Admin already in database")
