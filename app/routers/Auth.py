@@ -1,4 +1,5 @@
 from typing import Annotated
+from pydantic import EmailStr
 from fastapi import APIRouter, Depends
 from schemas.User import UserOutputDTO
 from core.config import settings
@@ -6,7 +7,7 @@ from core.database import DataBase
 from protect.protect_route import refresh_tokens, get_user_from_refresh_token
 from services import UserService
 from fastapi.responses import Response
-from schemas import UserLogin, Tokens, UserRegisterDTO
+from schemas import UserLogin, Tokens, UserRegisterDTO, UpdatePasswordDTO
 
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
@@ -78,3 +79,16 @@ async def logout(
     return {
         "msg": "Success!"
     }
+
+
+@router.post("/password-reset", status_code=201)
+async def reset_password(email: EmailStr, session: DataBase):
+    token = await UserService(session=session).password_reset(user_email=email)
+    return {
+        "token": token
+    }
+
+
+@router.post("/new-password", response_model=UserOutputDTO)
+async def get_new_password(session: DataBase, token: str, passwords: UpdatePasswordDTO):
+    return await UserService(session=session).update_password(password=passwords, token=token)

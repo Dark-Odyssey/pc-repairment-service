@@ -1,9 +1,14 @@
+from datetime import datetime, timedelta
+from pydantic import EmailStr
 from fastapi import HTTPException
 from typing import Sequence
+from hashlib import sha256
+from secrets import token_hex
 from database.models import UserORM
-from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO
+from core.config import settings
+from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UpdatePasswordDTO
 from security import Crypt, JWTHandler
-from database.repos import UserRepo
+from database.repos import UserRepo, PasswordResetRepo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class UserService:
@@ -11,6 +16,8 @@ class UserService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.__userRepo = UserRepo(session=session)
+        self.__passwordResetRepo = PasswordResetRepo(session=session)
+
 
     async def validate_before_creation(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO | UserCreateFullDTO) -> bool:
         user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
@@ -70,3 +77,53 @@ class UserService:
             raise HTTPException(status_code=400, detail="Incorrect creds!")
 
         return await JWTHandler.generate_tokens(user_db=user_db)
+
+
+    async def password_reset(self, user_email: EmailStr) -> str:
+        user_db = await self.__userRepo.select_user_by_email(email=user_email)
+
+        if not user_db:
+            raise HTTPException(status_code=401, detail="Invalid token!")
+        
+        token = token_hex(32)
+
+        hashed_token = sha256(token.encode()).hexdigest()
+        
+        await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
+
+        await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
+
+        return token
+
+
+    async def update_password(self, password: UpdatePasswordDTO, token: str) -> UserORM:
+
+        if password.new_password != password.retry_password:
+            raise HTTPException(status_code=400, detail="paswords don't match!")
+        
+        hashed_token = sha256(token.encode()).hexdigest()
+
+        password_reset_db = await self.__passwordResetRepo.get_reset_by_token(hashed_token=hashed_token)
+    
+        if not password_reset_db:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        user_db = password_reset_db.user
+
+        if not user_db:
+            raise HTTPException(status_code=401, detail="Invalid token!")
+
+        now = datetime.now()
+
+        if now > password_reset_db.created_at + timedelta(seconds=settings.PASSWORD_RESET_TOKEN_LIFE):
+            raise  HTTPException(status_code=401, detail="Token expired!")
+
+        if user_db.updated_at == user_db.created_at:
+            user_db.is_active = True
+        
+        user_db.updated_at = now
+        user_db.password_hash = Crypt.hash_password(password.new_password)
+
+        await self.__passwordResetRepo.delete_token_by_token_db(password_reset_db=password_reset_db)
+
+        return user_db

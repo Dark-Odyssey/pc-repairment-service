@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     CSRF_HEADER_NAME: str = "X_CSRF_TOKEN"
     REFRESH_COOKIE_NAME: str = "refresh_token"
 
+    PASSWORD_RESET_TOKEN_LIFE: int = 900
+
     @property
     def PRIVATE_KEY(self) -> str:
         return self.PATH_PRIV_KEY.read_text()
