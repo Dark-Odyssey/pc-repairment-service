@@ -47,7 +47,7 @@ class UserUpdate(BaseModel):
 class UserFilterDTO(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    email: EmailStr | None = None
+    email: str | None = None
     phone_number: PhoneNumber | None = None
     role: RoleEnum | None = None
     is_active: bool | None = None
