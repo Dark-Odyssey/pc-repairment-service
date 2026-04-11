@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     REFRESH_COOKIE_NAME: str = "refresh_token"
 
     PASSWORD_RESET_TOKEN_LIFE: int = 900
+    EMAIL: str
+    EMAIL_KEY: str
 
     @property
     def PRIVATE_KEY(self) -> str:

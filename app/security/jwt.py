@@ -71,4 +71,7 @@ class JWTHandler:
             csrf_token=csrf_token
         )
         return tokens
+    
+    # @staticmethod
+    # async def generate_password_reset_token
 

@@ -3,6 +3,7 @@ from pydantic import EmailStr
 from fastapi import HTTPException
 from typing import Sequence
 from hashlib import sha256
+from tools.email import EmailHandler
 from secrets import token_hex
 from database.models import UserORM
 from core.config import settings
@@ -17,7 +18,7 @@ class UserService:
     def __init__(self, session: AsyncSession) -> None:
         self.__userRepo = UserRepo(session=session)
         self.__passwordResetRepo = PasswordResetRepo(session=session)
-
+        self.__emailHangler = EmailHandler()
 
     async def validate_before_creation(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO | UserCreateFullDTO) -> bool:
         user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
@@ -29,7 +30,7 @@ class UserService:
 
         if user_with_same_phone:
             raise HTTPException(status_code=400, detail="Number Registered!")
-        
+
         return True
 
 
@@ -37,17 +38,24 @@ class UserService:
         return await self.__userRepo.get_all_users(filters)
 
 
-    async def register_user(self, user: UserRegisterDTO) -> UserORM:
-        await self.validate_before_creation(user)
-        return await self.__userRepo.create_user(user)
 
-    async def register_user_worker(self, user: UserCreateWorkerDTO, ) -> UserORM:
+    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO | UserCreateFullDTO) -> UserORM:
         await self.validate_before_creation(user)
-        return await self.__userRepo.create_user_worker(user)
+        if isinstance(user, UserRegisterDTO):
+            return await self.__userRepo.create_user(user)
+        elif isinstance(user, UserCreateAdminDTO):
+            user_db = await self.__userRepo.create_user_admin(user)
+        elif isinstance(user, UserCreateWorkerDTO):
+            user_db = await self.__userRepo.create_user_worker(user)
+        token = token_hex(32)
+        hashed_token = sha256(token.encode()).hexdigest()
 
-    async def register_user_admin(self, user: UserCreateAdminDTO, ) -> UserORM:
-        await self.validate_before_creation(user)
-        return await self.__userRepo.create_user_admin(user)
+        await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
+        await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
+        await self.__emailHangler.send_token_link(user_db=user_db, token=token)
+        return user_db
+
+
 
 
     async def patch_user(self, user_id, user_schema: UserUpdate) -> UserORM:
@@ -79,7 +87,7 @@ class UserService:
         return await JWTHandler.generate_tokens(user_db=user_db)
 
 
-    async def password_reset(self, user_email: EmailStr) -> str:
+    async def password_reset(self, user_email: EmailStr):
         user_db = await self.__userRepo.select_user_by_email(email=user_email)
 
         if not user_db:
@@ -90,10 +98,11 @@ class UserService:
         hashed_token = sha256(token.encode()).hexdigest()
         
         await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
-
         await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
+        await self.__emailHangler.send_token_link(user_db=user_db, token=token)
 
-        return token
+        return
+        
 
 
     async def update_password(self, password: UpdatePasswordDTO, token: str) -> UserORM:

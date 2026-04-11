@@ -25,7 +25,6 @@ class UserCreateFullDTO(UserCreateAdminDTO):
     is_active: bool = True
 
 class UserOutputDTO(BaseModel):
-    id: int
     first_name: str
     last_name: str
     email: EmailStr
