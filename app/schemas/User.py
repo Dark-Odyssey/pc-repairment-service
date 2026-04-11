@@ -29,10 +29,14 @@ class UserOutputDTO(BaseModel):
     last_name: str
     email: EmailStr
     phone_number: PhoneNumber
+
+class UserFullOutput(UserOutputDTO):
+    id: int
     role: RoleEnum
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
 
 class UserUpdate(BaseModel):
     first_name: str | None = None

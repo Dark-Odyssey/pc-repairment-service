@@ -13,7 +13,7 @@ class EmailHandler:
         email["Subject"] = "Password reset"
         email["From"] = self.__sender_email
         email["To"] = user_db.email
-        email.set_content(f"Your account recovery linkn\n\nhttp://127.0.0.1:8000/auth/new-password?token={token}")
+        email.set_content(f"Link for setting new password\n\nhttp://127.0.0.1:8000/auth/new-password?token={token}")
         try:
             await send(
                 email,
