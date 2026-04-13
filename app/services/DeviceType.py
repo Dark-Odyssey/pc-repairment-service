@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from database.models import DeviceTypeORM
 from database.repos import DeviceTypeRepo
-from schemas import DeviceTypeCreateDTO, DeviceTypeUpdateDTO, DeviceTypeSeachDTO, DeviceTypeDTO
+from schemas import DeviceTypeCreateDTO, DeviceTypeUpdateDTO, DeviceTypeFilterDTO, DeviceTypeDTO
 
 class DeviceTypeService:
 
@@ -19,7 +19,7 @@ class DeviceTypeService:
 
         return await self.__deviceTypeRepo.create_device_type(device_type_schema=device_type)
 
-    async def get_all_types(self, filters: DeviceTypeSeachDTO) -> Sequence[DeviceTypeORM]:
+    async def get_all_types(self, filters: DeviceTypeFilterDTO) -> Sequence[DeviceTypeORM]:
         return await self.__deviceTypeRepo.select_device_type(filters=filters)
     
 
@@ -44,3 +44,9 @@ class DeviceTypeService:
             raise HTTPException(status_code=404, detail="Device type not found!")
         
         return await self.__deviceTypeRepo.update_device_type(device_type_db, update_schema)
+    
+    async def get_device_type_by_id_rel(self, id: int) -> DeviceTypeORM:
+        device_type_db = await self.__deviceTypeRepo.get_device_type_by_id_rel(id)
+        if not device_type_db:
+            raise HTTPException(status_code=404, detail="Device type doesn't exist!")
+        return device_type_db

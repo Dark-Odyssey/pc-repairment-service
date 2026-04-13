@@ -46,18 +46,6 @@ class UserUpdate(BaseModel):
     role: RoleEnum | None = None
     is_active: bool | None = None
 
-class UserFilterWorkerDTO(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    email: str | None = None
-    phone_number: str | None = None
-    offset: int = Field(default=0)
-    limit: int = Field(default=30)
-
-class UserFilterDTO(UserFilterWorkerDTO):
-    role: RoleEnum | None = None
-    is_active: bool | None = None
-
 
 class UserLogin(BaseModel):
     email: EmailStr = Field(max_length=50)

@@ -1,5 +1,6 @@
 from .RepairOrders import RepairOrdersDTO
 from .User import UserOutputDTO, UserOutputWorkerDTO, UserFullOutput
+from .DeviceType import DeviceTypeDTO
 from pydantic import BaseModel
 
 
@@ -25,8 +26,17 @@ class RepairOrdersRelClientDTO(RepairOrdersDTO):
     worker_updated: WorkerInfoDTO
     device_type: DeviceInfoDTO
 
+class RepairOrdersRelDeviceTypeDTO(RepairOrdersDTO):
+    client: ClientInfoDTO
+    worker_created: WorkerInfoDTO
+    worker_updated: WorkerInfoDTO
+
+
 class UserOrderRelDTO(UserOutputDTO):
     orders: list[RepairOrdersRelClientDTO] = []
 
 class UserOrderFullRelDTO(UserFullOutput):
     orders: list[RepairOrdersRelClientDTO] = []
+
+class DeviceTypeRelDTO(DeviceTypeDTO):
+    orders: list[RepairOrdersRelDeviceTypeDTO] = []

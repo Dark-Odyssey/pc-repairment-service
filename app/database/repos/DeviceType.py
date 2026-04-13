@@ -1,8 +1,9 @@
 from typing import Sequence
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 from .BaseRepo import BaseRepo
-from database.models import DeviceTypeORM
-from schemas import DeviceTypeCreateDTO, DeviceTypeSeachDTO, DeviceTypeUpdateDTO
+from database.models import DeviceTypeORM, RepairOrdersORM
+from schemas import DeviceTypeCreateDTO, DeviceTypeFilterDTO, DeviceTypeUpdateDTO
 
 class DeviceTypeRepo(BaseRepo):
     
@@ -35,7 +36,7 @@ class DeviceTypeRepo(BaseRepo):
         return result.scalar_one_or_none()
 
 
-    async def select_device_type(self, filters: DeviceTypeSeachDTO) -> Sequence[DeviceTypeORM]:
+    async def select_device_type(self, filters: DeviceTypeFilterDTO) -> Sequence[DeviceTypeORM]:
         query = (
             select(DeviceTypeORM)
         )
@@ -55,3 +56,20 @@ class DeviceTypeRepo(BaseRepo):
     async def remove_device_type_object(self, device_type_db: DeviceTypeORM) -> None:
         await self.session.delete(device_type_db)
         return
+
+
+    async def get_device_type_by_id_rel(self, id: int) -> DeviceTypeORM | None:
+        query = (
+            select(DeviceTypeORM)
+            .where(DeviceTypeORM.id == id)
+            .options(
+                selectinload(DeviceTypeORM.orders)
+                .joinedload(RepairOrdersORM.client),
+                selectinload(DeviceTypeORM.orders)
+                .joinedload(RepairOrdersORM.worker_created),
+                selectinload(DeviceTypeORM.orders)
+                .joinedload(RepairOrdersORM.worker_updated)
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
