@@ -41,7 +41,7 @@ class DeviceTypeRepo(BaseRepo):
         )
         if filters.device_type:
             query = query.where(DeviceTypeORM.device_type.ilike(f"%{filters.device_type}%"))
-        result = await self.session.execute(query)
+        result = await self.session.execute(query.offset(filters.offset).limit(filters.limit))
         return result.scalars().all()
     
     async def select_device_type_by_name(self, device_type_name: str) -> DeviceTypeORM | None:

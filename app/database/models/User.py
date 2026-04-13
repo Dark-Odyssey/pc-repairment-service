@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import BaseORM
 from tools.types import RoleEnum
 from .annotations import intpk, str_50
@@ -17,3 +17,9 @@ class UserORM(BaseORM):
     is_active: Mapped[bool]
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime]
+
+    orders: Mapped[list["RepairOrdersORM"]] = relationship( # type: ignore
+        "RepairOrdersORM",
+        back_populates="client",
+        foreign_keys= "[RepairOrdersORM.client_id]"
+    ) # type: ignore

@@ -1,5 +1,5 @@
 from services import UserService
-from schemas import UserCreateWorkerDTO
+from schemas import UserCreateWorkerDTO, UserOutputWorkerDTO, UserFilterWorkerDTO
 from core.database import DataBase
 from fastapi import APIRouter, Depends
 from protect.roleChecker import access_admins_workers
@@ -11,3 +11,11 @@ router = APIRouter(prefix="/worker", tags=["Workers"])
 @router.post("/users", dependencies=[Depends(access_admins_workers)])
 async def create_user(user: UserCreateWorkerDTO, session: DataBase):
     return await UserService(session=session).register_new_user(user)
+
+
+@router.get("/users", dependencies=[Depends(access_admins_workers)], response_model=list[UserOutputWorkerDTO])
+async def get_users(
+    session: DataBase,
+    filter_schema: UserFilterWorkerDTO = Depends()
+):
+    return await UserService(session=session).show_users(filters=filter_schema)

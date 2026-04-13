@@ -12,6 +12,8 @@ class DeviceTypeDTO(DeviceTypeCreateDTO):
 
 class DeviceTypeSeachDTO(BaseModel):
     device_type: str | None = None
+    offset: int = Field(default=0)
+    limit: int = Field(default=10)
 
 class DeviceTypeUpdateDTO(DeviceTypeSeachDTO):
     description: str | None = None

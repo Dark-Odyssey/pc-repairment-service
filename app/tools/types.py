@@ -5,6 +5,7 @@ class RoleEnum(StrEnum):
     USER = "User"
 
 class StatusEnum(StrEnum):
+    CREATED = "Created"
     ACCEPTED = "Accepted"
     IN_DIAGNOSTICS = "In diagnostics"
     WAITING_FOR_PARTS = "Waiting for parts"

@@ -7,7 +7,7 @@ from tools.email import EmailHandler
 from secrets import token_hex
 from database.models import UserORM
 from core.config import settings
-from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UpdatePasswordDTO
+from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserFilterWorkerDTO, UpdatePasswordDTO
 from security import Crypt, JWTHandler
 from database.repos import UserRepo, PasswordResetRepo
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,22 +22,17 @@ class UserService:
         self.__emailHandler = EmailHandler()
 
 
-    async def validate_before_creation(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> None:
+    async def show_users(self, filters: UserFilterDTO | UserFilterWorkerDTO) -> Sequence[UserORM]:
+        return await self.__userRepo.get_all_users(filters)
+
+
+    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> UserORM:
         user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
         user_with_same_phone = await self.__userRepo.select_user_by_phone_number(phone_number=user.phone_number)
 
         if user_with_same_email or user_with_same_phone:
             raise HTTPException(status_code=400, detail="User with same credentials exists!")
 
-        return
-
-
-    async def show_users(self, filters: UserFilterDTO) -> Sequence[UserORM]:
-        return await self.__userRepo.get_all_users(filters)
-
-
-    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> UserORM:
-        await self.validate_before_creation(user)
         if isinstance(user, UserRegisterDTO):
             return await self.__userRepo.create_user(user)
         elif isinstance(user, UserCreateAdminDTO):

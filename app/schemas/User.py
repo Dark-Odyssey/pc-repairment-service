@@ -30,8 +30,10 @@ class UserOutputDTO(BaseModel):
     email: EmailStr
     phone_number: PhoneNumber
 
-class UserFullOutput(UserOutputDTO):
+class UserOutputWorkerDTO(UserOutputDTO):
     id: int
+
+class UserFullOutput(UserOutputWorkerDTO):
     role: RoleEnum
     is_active: bool
     created_at: datetime
@@ -44,16 +46,30 @@ class UserUpdate(BaseModel):
     role: RoleEnum | None = None
     is_active: bool | None = None
 
-class UserFilterDTO(BaseModel):
+class UserFilterWorkerDTO(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
-    phone_number: PhoneNumber | None = None
+    phone_number: str | None = None
+    offset: int = Field(default=0)
+    limit: int = Field(default=30)
+
+class UserFilterDTO(UserFilterWorkerDTO):
     role: RoleEnum | None = None
     is_active: bool | None = None
-    offset: int = Field(default=0)
-    limit: int = Field(default=10)
+
 
 class UserLogin(BaseModel):
     email: EmailStr = Field(max_length=50)
     password: str = Field(min_length=8, max_length=20)
+
+
+class ClientShortDTO(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    phone_number: str
+
+class WorkerShortDTO(BaseModel):
+    first_name: str
+    last_name: str

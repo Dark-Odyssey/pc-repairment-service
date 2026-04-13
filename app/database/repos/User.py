@@ -6,7 +6,7 @@ from datetime import datetime
 from tools.types import RoleEnum
 from security.encryption import Crypt
 from database.models import UserORM
-from schemas import UserCreateAdminDTO, UserFilterDTO , UserUpdate, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO
+from schemas import UserCreateAdminDTO, UserFilterDTO , UserUpdate, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UserFilterWorkerDTO
 from .BaseRepo import BaseRepo
 
 class UserRepo(BaseRepo):
@@ -22,7 +22,7 @@ class UserRepo(BaseRepo):
             **payload,
             **extra_data,
             created_at = now,
-            updated_at=now
+            updated_at = now
         )
         self.session.add(user)
         await self.session.flush()
@@ -59,7 +59,7 @@ class UserRepo(BaseRepo):
         )
 
 
-    async def get_all_users(self,filter_schema: UserFilterDTO) -> Sequence[UserORM]:
+    async def get_all_users(self,filter_schema: UserFilterDTO | UserFilterWorkerDTO) -> Sequence[UserORM]:
         query = (select(UserORM))
 
         if filter_schema.first_name:
@@ -71,16 +71,19 @@ class UserRepo(BaseRepo):
         if filter_schema.email:
             query = query.where(UserORM.email.ilike(f"%{filter_schema.email}%"))
         
-        if filter_schema.role:
-            query = query.where(UserORM.role==filter_schema.role)
-        
-        if filter_schema.is_active is not None:
-            query = query.where(UserORM.is_active==filter_schema.is_active)
+        if getattr(filter_schema, "role", None):
+            query = query.where(UserORM.role==filter_schema.role) # type: ignore
+
+        if type(filter_schema) is UserCreateWorkerDTO:
+            query = query.where(UserORM.role==RoleEnum.USER)
+
+        if getattr(filter_schema, "is_active", None) is not None:
+            query = query.where(UserORM.is_active==filter_schema.is_active) # type: ignore
         
         if filter_schema.phone_number is not None:
             query = query.where(UserORM.phone_number==filter_schema.phone_number)
 
-        result = await self.session.execute(query.limit(filter_schema.limit).offset(filter_schema.offset))
+        result = await self.session.execute(query.offset(filter_schema.offset).limit(filter_schema.limit))
         result = result.scalars().all()
         return result
 
