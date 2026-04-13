@@ -62,14 +62,3 @@ class UserFilterDTO(UserFilterWorkerDTO):
 class UserLogin(BaseModel):
     email: EmailStr = Field(max_length=50)
     password: str = Field(min_length=8, max_length=20)
-
-
-class ClientShortDTO(BaseModel):
-    first_name: str
-    last_name: str
-    email: str
-    phone_number: str
-
-class WorkerShortDTO(BaseModel):
-    first_name: str
-    last_name: str

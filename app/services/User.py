@@ -125,3 +125,9 @@ class UserService:
         await self.__passwordResetRepo.delete_token_by_token_db(password_reset_db=password_reset_db)
 
         return user_db
+    
+    async def get_user_by_id_rel(self, id: int) -> UserORM:
+        user_db = await self.__userRepo.select_user_with_del_by_id(id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User doesn't exist!")
+        return user_db

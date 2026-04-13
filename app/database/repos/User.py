@@ -2,10 +2,11 @@ from pydantic import BaseModel
 from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from datetime import datetime
 from tools.types import RoleEnum
 from security.encryption import Crypt
-from database.models import UserORM
+from database.models import UserORM, RepairOrdersORM
 from schemas import UserCreateAdminDTO, UserFilterDTO , UserUpdate, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UserFilterWorkerDTO
 from .BaseRepo import BaseRepo
 
@@ -125,6 +126,22 @@ class UserRepo(BaseRepo):
         query = (
             select(UserORM)
             .where(UserORM.phone_number == phone_number)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def select_user_with_del_by_id(self, id: int) -> UserORM | None:
+        query = (
+            select(UserORM)
+            .where(UserORM.id == id)
+            .options(
+                selectinload(UserORM.orders)
+                .joinedload(RepairOrdersORM.worker_created),
+                selectinload(UserORM.orders)
+                .joinedload(RepairOrdersORM.worker_updated),
+                selectinload(UserORM.orders)
+                .joinedload(RepairOrdersORM.device_type)
+            )
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
