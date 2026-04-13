@@ -6,7 +6,7 @@ from tools.types import RoleEnum
 from .annotations import intpk, str_50
 
 class UserORM(BaseORM):
-    __tablename__ = "user"
+    __tablename__ = "users"
     id: Mapped[intpk]
     first_name: Mapped[str_50]
     phone_number: Mapped[str] = mapped_column(String(20), unique=True, index=True)

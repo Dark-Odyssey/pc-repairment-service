@@ -8,7 +8,7 @@ from sqlalchemy import ForeignKey
 class PasswordResetORM(BaseORM):
     __tablename__ = "password_reset"
     id: Mapped[intpk]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     token: Mapped[str]
     created_at: Mapped[datetime]
 

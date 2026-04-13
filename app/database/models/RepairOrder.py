@@ -9,7 +9,7 @@ class RepairOrdersORM(BaseORM):
     __tablename__ = "repair_orders"
     id: Mapped[intpk]
     order_number: Mapped[str] = mapped_column(String(50),unique=True)
-    client_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    client_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     device_type_id: Mapped[int] = mapped_column(ForeignKey("device_type.id", ondelete="SET NULL"))
     device_model: Mapped[str_100]
     issue_description: Mapped[str_256]
@@ -20,7 +20,7 @@ class RepairOrdersORM(BaseORM):
     access_code_hash: Mapped[str]
     access_code_sent_at: Mapped[datetime]
     service_note: Mapped[str_256]
-    created_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
-    updated_by_employee_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    created_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime]
