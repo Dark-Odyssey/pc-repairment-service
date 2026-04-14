@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     EMAIL: str
     EMAIL_KEY: str
 
+    SALT: str
+
     @property
     def PRIVATE_KEY(self) -> str:
         return self.PATH_PRIV_KEY.read_text()

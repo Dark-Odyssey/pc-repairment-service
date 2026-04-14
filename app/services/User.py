@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
 from fastapi import HTTPException
 from typing import Sequence
@@ -7,10 +8,11 @@ from tools.email import EmailHandler
 from secrets import token_hex
 from database.models import UserORM
 from core.config import settings
-from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UpdatePasswordDTO
+from schemas import  UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserFilterWorkerDTO, UpdatePasswordDTO, UserFilterAdminDTO, UserAdminPaginationDTO, UserWorkerPaginationDTO
 from security import Crypt, JWTHandler
 from database.repos import UserRepo, PasswordResetRepo
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 class UserService:
 
@@ -18,29 +20,20 @@ class UserService:
     def __init__(self, session: AsyncSession) -> None:
         self.__userRepo = UserRepo(session=session)
         self.__passwordResetRepo = PasswordResetRepo(session=session)
-        self.__emailHangler = EmailHandler()
-
-    async def validate_before_creation(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO | UserCreateFullDTO) -> bool:
-        user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
-
-        if user_with_same_email:
-            raise HTTPException(status_code=400, detail="User with same email exists!")
-        
-        user_with_same_phone = await self.__userRepo.select_user_by_phone_number(phone_number=user.phone_number)
-
-        if user_with_same_phone:
-            raise HTTPException(status_code=400, detail="Number Registered!")
-
-        return True
+        self.__emailHandler = EmailHandler()
 
 
-    async def show_users(self, filters: UserFilterDTO) -> Sequence[UserORM]:
+    async def show_users(self, filters: UserFilterAdminDTO | UserFilterWorkerDTO) -> UserWorkerPaginationDTO | UserAdminPaginationDTO:
         return await self.__userRepo.get_all_users(filters)
 
 
+    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> UserORM:
+        user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
+        user_with_same_phone = await self.__userRepo.select_user_by_phone_number(phone_number=user.phone_number)
 
-    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO | UserCreateFullDTO) -> UserORM:
-        await self.validate_before_creation(user)
+        if user_with_same_email or user_with_same_phone:
+            raise HTTPException(status_code=400, detail="User with same credentials exists!")
+
         if isinstance(user, UserRegisterDTO):
             return await self.__userRepo.create_user(user)
         elif isinstance(user, UserCreateAdminDTO):
@@ -52,10 +45,8 @@ class UserService:
 
         await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
         await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
-        await self.__emailHangler.send_token_link(user_db=user_db, token=token)
+        await self.__emailHandler.send_token_link(user_db=user_db, token=token)
         return user_db
-
-
 
 
     async def patch_user(self, user_id, user_schema: UserUpdate) -> UserORM:
@@ -71,7 +62,10 @@ class UserService:
         user_db = await self.__userRepo.select_user_by_id(user_id=user_id)
         if not user_db:
             raise HTTPException(status_code=404, detail="User not found!")
-        await self.__userRepo.remove_user(user_db=user_db)
+        try:
+            await self.__userRepo.remove_user(user_db=user_db)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Can't delete user!")
         return
 
 
@@ -99,16 +93,15 @@ class UserService:
         
         await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
         await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
-        await self.__emailHangler.send_token_link(user_db=user_db, token=token)
+        await self.__emailHandler.send_token_link(user_db=user_db, token=token)
 
         return
         
 
-
     async def update_password(self, password: UpdatePasswordDTO, token: str) -> UserORM:
 
         if password.new_password != password.retry_password:
-            raise HTTPException(status_code=400, detail="paswords don't match!")
+            raise HTTPException(status_code=400, detail="passwords don't match!")
         
         hashed_token = sha256(token.encode()).hexdigest()
 
@@ -135,4 +128,10 @@ class UserService:
 
         await self.__passwordResetRepo.delete_token_by_token_db(password_reset_db=password_reset_db)
 
+        return user_db
+    
+    async def get_user_by_id_rel(self, id: int) -> UserORM:
+        user_db = await self.__userRepo.select_user_with_del_by_id(id)
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User doesn't exist!")
         return user_db

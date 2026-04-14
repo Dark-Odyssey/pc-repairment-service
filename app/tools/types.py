@@ -1,10 +1,11 @@
-from enum import StrEnum, auto
+from enum import StrEnum
 class RoleEnum(StrEnum):
     ADMIN = "Admin"
     WORKER = "Worker"
     USER = "User"
 
 class StatusEnum(StrEnum):
+    CREATED = "Created"
     ACCEPTED = "Accepted"
     IN_DIAGNOSTICS = "In diagnostics"
     WAITING_FOR_PARTS = "Waiting for parts"
