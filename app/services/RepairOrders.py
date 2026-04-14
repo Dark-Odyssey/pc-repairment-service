@@ -8,7 +8,7 @@ from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo
 from tools.email import EmailHandler
 from core.config import settings
 from hashids import Hashids
-from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO
+from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO
 from database.repos import RepairOrdersRepo
 
 class RepairOrdersService:
@@ -48,3 +48,17 @@ class RepairOrdersService:
         if not repair_order_db:
             raise HTTPException(status_code=404, detail="Repair order doesn't exist!")
         return repair_order_db
+    
+    async def remove_order(self, id: int) -> None:
+        repair_order_db = await self.__repairServiceRepo.select_repair_order_by_id(id)
+        if not repair_order_db:
+            raise HTTPException(status_code=404,  detail="Order not found!")
+        await self.__repairServiceRepo.remove_repair_order(repair_order_db)
+    
+    async def update_order(self, id: int, worker_id: int, schema: RepairOrderUpdateDTO) -> RepairOrdersORM:
+        repair_order_db = await self.__repairServiceRepo.select_repair_order_by_id(id)
+        if not repair_order_db:
+            raise HTTPException(status_code=404,  detail="Order not found!")
+        if repair_order_db.status != schema.status or repair_order_db.estimated_completion_date != schema.estimated_completion_date:
+            pass
+        return await self.__repairServiceRepo.update_repair_order(repair_order_db=repair_order_db, schema=schema, worker_id=worker_id)

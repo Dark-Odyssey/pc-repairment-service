@@ -1,4 +1,4 @@
-from core.database import async_engine, BaseORM, AsyncSessionGenerator, DataBase
+from core.database import async_engine, BaseORM, AsyncSessionGenerator
 from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, PasswordResetORM, DeviceTypeORM
 from database.repos import UserRepo
 from sqlalchemy.exc import IntegrityError
@@ -23,5 +23,5 @@ async def add_admin():
         try:
             await UserRepo(session=session).create_user_full(admin)
             await session.commit()
-        except IntegrityError:
-            print("Admin already in database")
+        except IntegrityError as e:
+            print(e)

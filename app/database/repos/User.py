@@ -3,6 +3,7 @@ from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select, Select,  func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from tools.types import RoleEnum
 from tools.pagination import count_pagination
@@ -138,7 +139,7 @@ class UserRepo(BaseRepo):
 
     async def remove_user(self, user_db: UserORM) -> None:
         await self.session.delete(user_db)
-        return
+        await self.session.commit()
     
 
     async def select_user_by_email(self, email: str) -> UserORM | None:

@@ -13,7 +13,6 @@ class RepairOrdersCreateServiceDTO(RepairOrdersCreateDTO):
     order_number: str
     
 
-
 class RepairOrdersDTO(RepairOrdersCreateDTO):
     id: int
     order_number: str
@@ -24,3 +23,9 @@ class RepairOrdersDTO(RepairOrdersCreateDTO):
     created_at: datetime
     updated_at: datetime
 
+class RepairOrderUpdateDTO(BaseModel):
+    device_model: str | None = Field(default=None, max_length=100)
+    issue_description: str | None = Field(default=None, max_length=256)
+    estimated_completion_date: datetime | None = None
+    status: StatusEnum | None = None
+    service_note: str | None = Field(default=None, max_length=256)

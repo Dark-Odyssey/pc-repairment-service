@@ -1,5 +1,5 @@
-from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from database.models import DeviceTypeORM
 from database.repos import DeviceTypeRepo
@@ -27,9 +27,12 @@ class DeviceTypeService:
         device_type_db = await self.__deviceTypeRepo.select_device_type_by_id(id)
         if not device_type_db:
             raise HTTPException(status_code=404, detail="Device type doesn't exist!")
-        await self.__deviceTypeRepo.remove_device_type_object(device_type_db)
+        try:
+            await self.__deviceTypeRepo.remove_device_type_object(device_type_db)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Can't delete device type!")
         return
-    
+
 
     async def update_device_type(self, id: int, update_schema: DeviceTypeUpdateDTO) -> DeviceTypeORM:
         device_type_db = await self.__deviceTypeRepo.select_device_type_by_id(id)

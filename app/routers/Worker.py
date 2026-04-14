@@ -1,5 +1,5 @@
 from services import UserService
-from schemas import UserCreateWorkerDTO, UserOutputWorkerDTO, UserFilterWorkerDTO, UserOrderRelDTO, UserWorkerPaginationDTO
+from schemas import UserCreateWorkerDTO, UserFilterWorkerDTO, UserOrderRelDTO, UserWorkerPaginationDTO
 from core.database import DataBase
 from fastapi import APIRouter, Depends
 from protect.roleChecker import access_admins_workers

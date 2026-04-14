@@ -2,7 +2,7 @@ from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
-from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO
+from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO
 from database.models import RepairOrdersORM, UserORM, DeviceTypeORM
 from tools.types import StatusEnum
 from .BaseRepo import BaseRepo
@@ -52,8 +52,6 @@ class RepairOrdersRepo(BaseRepo):
             query = query.where(RepairOrdersORM.device_type_id == filters.device_type_id)
         if filters.order_number:
             query = query.where(RepairOrdersORM.order_number == filters.order_number)
-        if filters.id:
-            query = query.where(RepairOrdersORM.id == filters.id)
         if filters.client_first_name:
             query = query.where(UserORM.first_name.ilike(f"%{filters.client_first_name}%"))
         if filters.client_last_name:
@@ -80,3 +78,19 @@ class RepairOrdersRepo(BaseRepo):
             joinedload(RepairOrdersORM.device_type)
         ))
         return result.scalar_one_or_none()
+
+
+    async def remove_repair_order(self, repair_order_db: RepairOrdersORM) -> None:
+        await self.session.delete(repair_order_db)
+        return
+    
+    async def update_repair_order(self, repair_order_db: RepairOrdersORM, schema: RepairOrderUpdateDTO, worker_id: int) -> RepairOrdersORM:
+        now = datetime.now()
+        schema_dict = schema.model_dump(exclude_none=True)
+        for key, value in schema_dict.items():
+            setattr(repair_order_db, key, value)
+        repair_order_db.updated_by_employee_id = worker_id
+        repair_order_db.updated_at = now
+        await self.session.flush()
+        await self.session.refresh(repair_order_db)
+        return repair_order_db

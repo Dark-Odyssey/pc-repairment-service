@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
 from fastapi import HTTPException
 from typing import Sequence
@@ -61,7 +62,10 @@ class UserService:
         user_db = await self.__userRepo.select_user_by_id(user_id=user_id)
         if not user_db:
             raise HTTPException(status_code=404, detail="User not found!")
-        await self.__userRepo.remove_user(user_db=user_db)
+        try:
+            await self.__userRepo.remove_user(user_db=user_db)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Can't delete user!")
         return
 
 

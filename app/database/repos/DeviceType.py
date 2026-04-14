@@ -70,6 +70,7 @@ class DeviceTypeRepo(BaseRepo):
     
     async def remove_device_type_object(self, device_type_db: DeviceTypeORM) -> None:
         await self.session.delete(device_type_db)
+        await self.session.commit()
         return
 
 
