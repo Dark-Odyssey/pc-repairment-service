@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from database.models import OrderStatusHistoryORM
 from .BaseRepo import BaseRepo
 from tools.types import StatusEnum
@@ -11,8 +11,8 @@ class OrderStatusHistoryRepo(BaseRepo):
     changed_by_employee_id: int,
     old_status: StatusEnum | None = None,
     new_status: StatusEnum | None = None,
-    old_estimated_completion_date: datetime | None = None,
-    new_estimated_completion_date: datetime | None = None,
+    old_estimated_completion_date: date | None = None,
+    new_estimated_completion_date: date | None = None,
     ) -> OrderStatusHistoryORM:
         now = datetime.now()
         order_status_history_db = OrderStatusHistoryORM(

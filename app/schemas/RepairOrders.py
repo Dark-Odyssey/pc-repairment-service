@@ -1,5 +1,5 @@
 from tools.types import StatusEnum
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 
@@ -26,9 +26,15 @@ class RepairOrdersDTO(RepairOrdersCreateDTO):
 class RepairOrderUpdateDTO(BaseModel):
     device_model: str | None = Field(default=None, max_length=100)
     issue_description: str | None = Field(default=None, max_length=256)
-    estimated_completion_date: datetime | None = None
+    estimated_completion_date: date | None = None
     status: StatusEnum | None = None
     service_note: str | None = Field(default=None, max_length=256)
 
 
-# class RepairOrderUserShortDTO(BaseModel)
+class RepairOrderUserDTO(BaseModel):
+    order_number: str
+    estimated_completion_date: datetime | None
+    status: StatusEnum
+    created_at: datetime
+    device_model: str
+    issue_description: str

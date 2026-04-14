@@ -45,5 +45,7 @@ class RepairOrdersORM(BaseORM):
     )
     history: Mapped[list["OrderStatusHistoryORM"]] = relationship(
         "OrderStatusHistoryORM",
-        foreign_keys="[OrderStatusHistoryORM.repair_order_id]"
+        foreign_keys="[OrderStatusHistoryORM.repair_order_id]",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
