@@ -1,9 +1,7 @@
 from pydantic import BaseModel
-from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select, Select,  func
 from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from tools.types import RoleEnum
 from tools.pagination import count_pagination
@@ -130,6 +128,8 @@ class UserRepo(BaseRepo):
     async def update_user(self, user_db: UserORM, user_schema: UserUpdate) -> UserORM:
         user_update_dict = user_schema.model_dump(exclude_none=True)
         for key, value in user_update_dict.items():
+            if not value:
+                continue
             setattr(user_db, key, value)
         user_db.updated_at = datetime.now()
         await self.session.flush()

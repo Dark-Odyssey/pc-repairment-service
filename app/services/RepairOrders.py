@@ -4,7 +4,7 @@ from secrets import token_hex
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import RepairOrdersORM
-from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo
+from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo, OrderStatusHistoryRepo
 from tools.email import EmailHandler
 from core.config import settings
 from hashids import Hashids
@@ -19,6 +19,7 @@ class RepairOrdersService:
         self.__repairServiceRepo = RepairOrdersRepo(session=session) 
         self.__userRepo = UserRepo(session=session)
         self.__deviceTypeRepo = DeviceTypeRepo(session=session)
+        self.__orderStatusHistoryRepo = OrderStatusHistoryRepo(session=session)
 
 
     async def create_order(self, worker_id: int, schema: RepairOrdersCreateDTO) -> RepairOrdersORM:
@@ -35,7 +36,7 @@ class RepairOrdersService:
         order_number = self.__hashIds.encode(repair_order_db.id)
         repair_order_db.order_number = order_number
         await self.__emailHandler.send_repair_order_creds(user_db=client_db, order_number=order_number, access_code=token)
-
+        await self.__orderStatusHistoryRepo.create_order_status_history(repair_order_id=repair_order_db.id, new_status=repair_order_db.status, changed_by_employee_id=worker_id)
         return repair_order_db
 
 

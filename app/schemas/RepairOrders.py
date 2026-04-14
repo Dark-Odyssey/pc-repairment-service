@@ -29,3 +29,6 @@ class RepairOrderUpdateDTO(BaseModel):
     estimated_completion_date: datetime | None = None
     status: StatusEnum | None = None
     service_note: str | None = Field(default=None, max_length=256)
+
+
+# class RepairOrderUserShortDTO(BaseModel)

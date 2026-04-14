@@ -1,7 +1,7 @@
 from typing import Sequence
 from datetime import datetime
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO
 from database.models import RepairOrdersORM, UserORM, DeviceTypeORM
 from tools.types import StatusEnum
@@ -75,7 +75,8 @@ class RepairOrdersRepo(BaseRepo):
             joinedload(RepairOrdersORM.client),
             joinedload(RepairOrdersORM.worker_created),
             joinedload(RepairOrdersORM.worker_updated),
-            joinedload(RepairOrdersORM.device_type)
+            joinedload(RepairOrdersORM.device_type),
+            selectinload(RepairOrdersORM.history)
         ))
         return result.scalar_one_or_none()
 
