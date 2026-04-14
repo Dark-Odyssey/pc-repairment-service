@@ -2,16 +2,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from core.database import DataBase
 from services import UserService
-from database.models import UserORM
-from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserOutputDTO, UserFullOutput, UserOrderFullRelDTO
+from schemas import UserFilterAdminDTO, UserCreateAdminDTO, UserUpdate, UserFullOutput, UserOrderFullRelDTO, UserAdminPaginationDTO
 from protect.roleChecker import access_admins
 
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-@router.get("/users", response_model=list[UserFullOutput], dependencies=[Depends(access_admins)])
-async def get_users(session: DataBase, filters: UserFilterDTO = Depends()):
+@router.get("/users", response_model=UserAdminPaginationDTO, dependencies=[Depends(access_admins)])
+async def get_users(session: DataBase, filters: UserFilterAdminDTO = Depends()):
     return await UserService(session=session).show_users(filters=filters)
 
 

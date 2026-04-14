@@ -1,5 +1,5 @@
 from services import UserService
-from schemas import UserCreateWorkerDTO, UserOutputWorkerDTO, UserFilterWorkerDTO, UserOrderRelDTO
+from schemas import UserCreateWorkerDTO, UserOutputWorkerDTO, UserFilterWorkerDTO, UserOrderRelDTO, UserWorkerPaginationDTO
 from core.database import DataBase
 from fastapi import APIRouter, Depends
 from protect.roleChecker import access_admins_workers
@@ -13,7 +13,7 @@ async def create_user(user: UserCreateWorkerDTO, session: DataBase):
     return await UserService(session=session).register_new_user(user)
 
 
-@router.get("/users", dependencies=[Depends(access_admins_workers)], response_model=list[UserOutputWorkerDTO])
+@router.get("/users", dependencies=[Depends(access_admins_workers)], response_model=UserWorkerPaginationDTO)
 async def get_users(
     session: DataBase,
     filter_schema: UserFilterWorkerDTO = Depends()

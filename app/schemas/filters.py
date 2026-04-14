@@ -1,5 +1,19 @@
+from typing import Sequence
 from pydantic import BaseModel, Field
+from .DeviceType import DeviceTypeDTO
+from .User import UserOutputDTO, UserFullOutput
 from tools.types import RoleEnum, StatusEnum
+
+
+
+class PaginationDTO(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    page: int
+    pages: int
+    has_prev: bool
+    has_next: bool
 
 
 class UserFilterWorkerDTO(BaseModel):
@@ -7,14 +21,18 @@ class UserFilterWorkerDTO(BaseModel):
     last_name: str | None = None
     email: str | None = None
     phone_number: str | None = None
-    offset: int = Field(default=0)
-    limit: int = Field(default=30)
+    offset: int =  Field(ge=0, default=0)
+    limit: int = Field(ge=0, default=30)
 
-
-class UserFilterDTO(UserFilterWorkerDTO):
+class UserFilterAdminDTO(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
     role: RoleEnum | None = None
     is_active: bool | None = None
-
+    offset: int =  Field(ge=0, default=0)
+    limit: int = Field(ge=0, default=30)
 
 
 class RepairOrdersFilterDTO(BaseModel):
@@ -28,12 +46,35 @@ class RepairOrdersFilterDTO(BaseModel):
     client_first_name: str | None = None
     client_last_name: str | None = None
     device_type_name: str | None = None
-    offset: int = 0
-    limit: int = 30
+    offset: int =  Field(ge=0, default=0)
+    limit: int = Field(ge=0, default=30)
 
 
 class DeviceTypeFilterDTO(BaseModel):
     device_type: str | None = None
     description: str | None = None
-    offset: int = 0
-    limit: int = 30
+    offset: int =  Field(ge=0, default=0)
+    limit: int = Field(ge=0, default=30)
+
+
+
+
+class UserWorkerPaginationDTO(BaseModel):
+    result: Sequence[UserOutputDTO]
+    pagination: PaginationDTO
+
+
+class UserAdminPaginationDTO(BaseModel):
+    result: Sequence[UserFullOutput]
+    pagination: PaginationDTO
+
+
+class RepairOrdersPaginationDTO(BaseModel):
+    result: Sequence[RepairOrdersFilterDTO]
+    pagination: PaginationDTO
+
+
+class DeviceTypePaginationDTO(BaseModel):
+    result: Sequence[DeviceTypeDTO]
+    pagination: PaginationDTO
+

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from protect.roleChecker import access_admins_workers
 from core.database import DataBase
 from services import DeviceTypeService
-from schemas import DeviceTypeCreateDTO, DeviceTypeDTO, DeviceTypeFilterDTO, DeviceTypeUpdateDTO, DeviceTypeRelDTO
+from schemas import DeviceTypeCreateDTO, DeviceTypeDTO, DeviceTypeFilterDTO, DeviceTypeUpdateDTO, DeviceTypeRelDTO, DeviceTypePaginationDTO
 
 router = APIRouter(prefix="/device-type", tags=["Device Type"])
 
@@ -12,7 +12,7 @@ async def create_device_type(device_type: DeviceTypeCreateDTO, session: DataBase
     return await DeviceTypeService(session=session).create_device_type(device_type=device_type)
 
 
-@router.get("/", response_model=list[DeviceTypeDTO], dependencies=[Depends(access_admins_workers)])
+@router.get("/", response_model=DeviceTypePaginationDTO, dependencies=[Depends(access_admins_workers)])
 async def get_device_type(session: DataBase, filters: DeviceTypeFilterDTO = Depends()):
     return await DeviceTypeService(session=session).get_all_types(filters=filters)
 

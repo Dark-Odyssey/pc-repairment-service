@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 from typing import Sequence
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, Select,  func
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 from tools.types import RoleEnum
+from tools.pagination import count_pagination
 from security.encryption import Crypt
 from database.models import UserORM, RepairOrdersORM
-from schemas import UserCreateAdminDTO, UserFilterDTO , UserUpdate, UserRegisterDTO, UserCreateWorkerDTO, UserCreateFullDTO, UserFilterWorkerDTO
+from schemas import (UserCreateAdminDTO, UserFilterAdminDTO, UserAdminPaginationDTO, UserWorkerPaginationDTO,
+                    UserUpdate, UserRegisterDTO, UserCreateWorkerDTO,
+                    UserCreateFullDTO, UserFilterWorkerDTO)
 from .BaseRepo import BaseRepo
 
 class UserRepo(BaseRepo):
@@ -59,10 +62,8 @@ class UserRepo(BaseRepo):
             user_schema=user_schema
         )
 
-
-    async def get_all_users(self,filter_schema: UserFilterDTO | UserFilterWorkerDTO) -> Sequence[UserORM]:
-        query = (select(UserORM))
-
+    @staticmethod
+    def _apply_filters(query: Select, filter_schema: UserFilterAdminDTO | UserFilterWorkerDTO) -> Select:
         if filter_schema.first_name:
             query = query.where(UserORM.first_name.ilike(f"%{filter_schema.first_name}%"))
 
@@ -75,7 +76,7 @@ class UserRepo(BaseRepo):
         if getattr(filter_schema, "role", None):
             query = query.where(UserORM.role==filter_schema.role) # type: ignore
 
-        if type(filter_schema) is UserCreateWorkerDTO:
+        if type(filter_schema) is UserFilterWorkerDTO:
             query = query.where(UserORM.role==RoleEnum.USER)
 
         if getattr(filter_schema, "is_active", None) is not None:
@@ -83,10 +84,37 @@ class UserRepo(BaseRepo):
         
         if filter_schema.phone_number is not None:
             query = query.where(UserORM.phone_number==filter_schema.phone_number)
+        
+        return query
+
+
+
+    async def get_all_users(self, filter_schema: UserFilterAdminDTO | UserFilterWorkerDTO) -> UserWorkerPaginationDTO | UserAdminPaginationDTO:
+        query = select(UserORM)
+        query_count = select(func.count()).select_from(UserORM)
+
+        query = self._apply_filters(query=query, filter_schema=filter_schema)
+        query_count = self._apply_filters(query=query_count, filter_schema=filter_schema)
+
+        total = await self.session.execute(query_count)
+        total = total.scalar()
+
+        pagination = count_pagination(offset=filter_schema.offset, limit=filter_schema.limit, total=total)
 
         result = await self.session.execute(query.offset(filter_schema.offset).limit(filter_schema.limit))
         result = result.scalars().all()
-        return result
+
+        if type(filter_schema) is UserFilterAdminDTO:
+            return UserAdminPaginationDTO(
+                result=result,
+                pagination=pagination
+            )
+        else:
+            return UserWorkerPaginationDTO(
+                result=result,
+                pagination=pagination
+            )
+        
 
 
     async def select_user_by_id(self, user_id: int) -> UserORM | None:

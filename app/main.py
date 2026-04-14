@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     await add_admin()
     yield
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path="/api/v1")
 app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(worker_router)

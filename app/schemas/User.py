@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from tools.types import RoleEnum
 
@@ -25,6 +25,8 @@ class UserCreateFullDTO(UserCreateAdminDTO):
     is_active: bool = True
 
 class UserOutputDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     first_name: str
     last_name: str
     email: EmailStr

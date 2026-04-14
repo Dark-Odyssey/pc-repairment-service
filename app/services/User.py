@@ -7,7 +7,7 @@ from tools.email import EmailHandler
 from secrets import token_hex
 from database.models import UserORM
 from core.config import settings
-from schemas import UserFilterDTO, UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserFilterWorkerDTO, UpdatePasswordDTO
+from schemas import  UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserFilterWorkerDTO, UpdatePasswordDTO, UserFilterAdminDTO, UserAdminPaginationDTO, UserWorkerPaginationDTO
 from security import Crypt, JWTHandler
 from database.repos import UserRepo, PasswordResetRepo
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,7 @@ class UserService:
         self.__emailHandler = EmailHandler()
 
 
-    async def show_users(self, filters: UserFilterDTO | UserFilterWorkerDTO) -> Sequence[UserORM]:
+    async def show_users(self, filters: UserFilterAdminDTO | UserFilterWorkerDTO) -> UserWorkerPaginationDTO | UserAdminPaginationDTO:
         return await self.__userRepo.get_all_users(filters)
 
 

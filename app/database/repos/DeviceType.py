@@ -1,9 +1,9 @@
-from typing import Sequence
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from .BaseRepo import BaseRepo
+from tools.pagination import count_pagination
 from database.models import DeviceTypeORM, RepairOrdersORM
-from schemas import DeviceTypeCreateDTO, DeviceTypeFilterDTO, DeviceTypeUpdateDTO
+from schemas import DeviceTypeCreateDTO, DeviceTypeFilterDTO, DeviceTypeUpdateDTO, DeviceTypePaginationDTO
 
 class DeviceTypeRepo(BaseRepo):
     
@@ -36,14 +36,29 @@ class DeviceTypeRepo(BaseRepo):
         return result.scalar_one_or_none()
 
 
-    async def select_device_type(self, filters: DeviceTypeFilterDTO) -> Sequence[DeviceTypeORM]:
+    async def select_device_type(self, filters: DeviceTypeFilterDTO) -> DeviceTypePaginationDTO:
         query = (
             select(DeviceTypeORM)
         )
+        query_count = (
+            select(func.count()).select_from(DeviceTypeORM)
+        )
         if filters.device_type:
             query = query.where(DeviceTypeORM.device_type.ilike(f"%{filters.device_type}%"))
+            query_count = query.where(DeviceTypeORM.device_type.ilike(f"%{filters.device_type}%"))
+
+        total = await self.session.execute(query_count)
+        total = total.scalar()
+
+        pagination = count_pagination(offset=filters.offset, limit=filters.limit, total=total)
+
         result = await self.session.execute(query.offset(filters.offset).limit(filters.limit))
-        return result.scalars().all()
+        result = result.scalars().all()
+
+        return DeviceTypePaginationDTO(
+            result=result, # type: ignore
+            pagination=pagination
+        )
     
     async def select_device_type_by_name(self, device_type_name: str) -> DeviceTypeORM | None:
         query = (

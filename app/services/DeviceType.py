@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from database.models import DeviceTypeORM
 from database.repos import DeviceTypeRepo
-from schemas import DeviceTypeCreateDTO, DeviceTypeUpdateDTO, DeviceTypeFilterDTO, DeviceTypeDTO
+from schemas import DeviceTypeCreateDTO, DeviceTypeUpdateDTO, DeviceTypeFilterDTO, DeviceTypePaginationDTO
 
 class DeviceTypeService:
 
@@ -19,7 +19,7 @@ class DeviceTypeService:
 
         return await self.__deviceTypeRepo.create_device_type(device_type_schema=device_type)
 
-    async def get_all_types(self, filters: DeviceTypeFilterDTO) -> Sequence[DeviceTypeORM]:
+    async def get_all_types(self, filters: DeviceTypeFilterDTO) -> DeviceTypePaginationDTO:
         return await self.__deviceTypeRepo.select_device_type(filters=filters)
     
 
