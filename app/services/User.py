@@ -135,3 +135,9 @@ class UserService:
         if not user_db:
             raise HTTPException(status_code=404, detail="User doesn't exist!")
         return user_db
+    
+    async def get_user(self, id: int) -> UserORM:
+        user_db = await self.__userRepo.select_user_by_id(id)
+        if not user_db:
+            raise HTTPException(status_code=401, detail="Invalid token!")
+        return user_db

@@ -1,5 +1,7 @@
 from typing import Sequence
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from .RepairOrders import RepairOrdersDTO, RepairOrderUserDTO
+from .relationship import RepairOrderUserRelDTO, RepairOrdersRelDTO
 from .DeviceType import DeviceTypeDTO
 from .User import UserOutputDTO, UserFullOutput
 from tools.types import RoleEnum, StatusEnum
@@ -57,8 +59,6 @@ class DeviceTypeFilterDTO(BaseModel):
     limit: int = Field(ge=0, default=30)
 
 
-
-
 class UserWorkerPaginationDTO(BaseModel):
     result: Sequence[UserOutputDTO]
     pagination: PaginationDTO
@@ -70,7 +70,7 @@ class UserAdminPaginationDTO(BaseModel):
 
 
 class RepairOrdersPaginationDTO(BaseModel):
-    result: Sequence[RepairOrdersFilterDTO]
+    result: Sequence[RepairOrdersRelDTO]
     pagination: PaginationDTO
 
 
@@ -78,3 +78,6 @@ class DeviceTypePaginationDTO(BaseModel):
     result: Sequence[DeviceTypeDTO]
     pagination: PaginationDTO
 
+class RepairOrdersUserPaginationDTO(BaseModel):
+    result: Sequence[RepairOrderUserRelDTO]
+    pagination: PaginationDTO

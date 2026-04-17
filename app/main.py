@@ -2,6 +2,7 @@ from routers.Admin import router as admin_router
 from routers.Auth import router as auth_router
 from routers.RepairOrder import router as repair_orders_router
 from routers.DeviceType import router as device_type_router
+from routers.User import router as user_router
 from routers.Worker import router as worker_router
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -21,6 +22,7 @@ app.include_router(auth_router)
 app.include_router(worker_router)
 app.include_router(device_type_router)
 app.include_router(repair_orders_router)
+app.include_router(user_router)
 
 app.add_middleware(
     CORSMiddleware,

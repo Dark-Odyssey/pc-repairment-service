@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from database.models.User import UserORM
 from database.models.DeviceType import DeviceTypeORM
+from database.models.OrderStatusHistory import OrderStatusHistoryORM
 from core.database import BaseORM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
@@ -41,4 +42,10 @@ class RepairOrdersORM(BaseORM):
         "DeviceTypeORM",
         foreign_keys="[RepairOrdersORM.device_type_id]",
         back_populates="orders"
+    )
+    history: Mapped[list["OrderStatusHistoryORM"]] = relationship(
+        "OrderStatusHistoryORM",
+        foreign_keys="[OrderStatusHistoryORM.repair_order_id]",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )

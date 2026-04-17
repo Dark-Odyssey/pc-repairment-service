@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from services import RepairOrdersService
 from core.database import DataBase
-from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrdersRelDTO, RepairOrderUpdateDTO
+from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrdersRelDTO, RepairOrderUpdateDTO, RepairOrdersHistRelDTO, RepairOrdersPaginationDTO
 from protect.roleChecker import access_admins_workers, access_admins
 
 router = APIRouter(prefix="/repair-order", tags=["Repair Orders"])
@@ -16,16 +16,18 @@ async def create_repair_order(
     return await RepairOrdersService(session=session).create_order(worker_id=worker_id, schema=schema)
 
 
-@router.get("/", dependencies=[Depends(access_admins_workers)], response_model=list[RepairOrdersRelDTO])
+@router.get("/", dependencies=[Depends(access_admins_workers)], response_model=RepairOrdersPaginationDTO)
 async def get_orders(
     session: DataBase,
     filters: RepairOrdersFilterDTO = Depends()
 ):
     return await RepairOrdersService(session=session).select_repair_orders_filter(filters=filters)
 
-@router.get("/{id}", dependencies=[Depends(access_admins_workers)], response_model=RepairOrdersRelDTO)
+
+@router.get("/{id}", dependencies=[Depends(access_admins_workers)], response_model=RepairOrdersHistRelDTO)
 async def get_single_repair_order(session: DataBase, id: int):
     return await RepairOrdersService(session=session).get_by_repair_order_by_id(id=id)
+
 
 @router.delete("/{id}", dependencies=[Depends(access_admins)], status_code=204)
 async def delete_order(session: DataBase, id: int):

@@ -78,14 +78,6 @@ class DeviceTypeRepo(BaseRepo):
         query = (
             select(DeviceTypeORM)
             .where(DeviceTypeORM.id == id)
-            .options(
-                selectinload(DeviceTypeORM.orders)
-                .joinedload(RepairOrdersORM.client),
-                selectinload(DeviceTypeORM.orders)
-                .joinedload(RepairOrdersORM.worker_created),
-                selectinload(DeviceTypeORM.orders)
-                .joinedload(RepairOrdersORM.worker_updated)
-            )
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
