@@ -8,7 +8,7 @@ from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo, OrderStat
 from tools.email import EmailHandler
 from core.config import settings
 from hashids import Hashids
-from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO, OrderCredsDTO
+from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO, OrderCredsDTO, RepairOrdersPaginationDTO, RepairOrdersUserPaginationDTO
 from database.repos import RepairOrdersRepo
 
 class RepairOrdersService:
@@ -40,7 +40,7 @@ class RepairOrdersService:
         return repair_order_db
 
 
-    async def select_repair_orders_filter(self, filters: RepairOrdersFilterDTO) -> Sequence[RepairOrdersORM]:
+    async def select_repair_orders_filter(self, filters: RepairOrdersFilterDTO) -> RepairOrdersPaginationDTO:
         return await self.__repairOrdersRepo.select_repair_orders_filter(filters=filters)
 
 
@@ -97,3 +97,7 @@ class RepairOrdersService:
         if hashed_token != repair_order_db.access_code_hash:
             raise HTTPException(status_code=400, detail="Indalid creds!")
         return repair_order_db
+    
+
+    async def get_user_repair_orders(self, id: int, offset: int, limit: int) -> RepairOrdersUserPaginationDTO:
+        return await self.__repairOrdersRepo.select_repair_orders_by_client_id(id=id, offset=offset, limit=limit)

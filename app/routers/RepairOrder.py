@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from services import RepairOrdersService
 from core.database import DataBase
-from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrdersRelDTO, RepairOrderUpdateDTO, RepairOrdersHistRelDTO
+from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrdersRelDTO, RepairOrderUpdateDTO, RepairOrdersHistRelDTO, RepairOrdersPaginationDTO
 from protect.roleChecker import access_admins_workers, access_admins
 
 router = APIRouter(prefix="/repair-order", tags=["Repair Orders"])
@@ -16,7 +16,7 @@ async def create_repair_order(
     return await RepairOrdersService(session=session).create_order(worker_id=worker_id, schema=schema)
 
 
-@router.get("/", dependencies=[Depends(access_admins_workers)], response_model=list[RepairOrdersRelDTO])
+@router.get("/", dependencies=[Depends(access_admins_workers)], response_model=RepairOrdersPaginationDTO)
 async def get_orders(
     session: DataBase,
     filters: RepairOrdersFilterDTO = Depends()

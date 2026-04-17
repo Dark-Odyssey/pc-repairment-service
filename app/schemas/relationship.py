@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from .RepairOrdersHistory import RepairOrderHistoryFullDTO, RepairOrdersHistoryUserDTO
 from .RepairOrders import RepairOrdersDTO, RepairOrderUserDTO
 from .User import UserOutputDTO, UserFullOutput
@@ -6,14 +6,17 @@ from .DeviceType import DeviceTypeDTO
 
 
 class WorkerInfoDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     first_name: str
     last_name: str
 
 class ClientInfoDTO(WorkerInfoDTO):
+    model_config = ConfigDict(from_attributes=True)
     email: str
     phone_number: str
 
 class DeviceInfoDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     device_type: str
 
 class RepairOrdersRelDTO(RepairOrdersDTO):

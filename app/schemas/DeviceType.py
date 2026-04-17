@@ -2,12 +2,12 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class DeviceTypeCreateDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     device_type: str = Field(max_length=50)
     description: str | None = Field(max_length=256)
 
 
 class DeviceTypeDTO(DeviceTypeCreateDTO):
-    model_config = ConfigDict(from_attributes=True)
     id: int
 
 class DeviceTypeUpdateDTO(BaseModel):

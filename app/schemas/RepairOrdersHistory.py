@@ -6,7 +6,6 @@ from tools.types import StatusEnum
 
 class RepairOrdersHistoryUserDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     old_status: StatusEnum | None
     new_status: StatusEnum | None
     old_estimated_completion_date: datetime | None
