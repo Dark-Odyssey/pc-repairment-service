@@ -34,13 +34,13 @@ class UserService:
         if user_with_same_email or user_with_same_phone:
             raise HTTPException(status_code=400, detail="User with same credentials exists!")
 
-        if isinstance(user, UserRegisterDTO):
+        if type(user) is UserRegisterDTO:
             hashed_password = await run_in_threadpool(Crypt.hash_password, user.password)
             user.password = hashed_password
             return await self.__userRepo.create_user(user)
-        elif isinstance(user, UserCreateAdminDTO):
+        elif type(user) is UserCreateAdminDTO:
             user_db = await self.__userRepo.create_user_admin(user)
-        elif isinstance(user, UserCreateWorkerDTO):
+        else:
             user_db = await self.__userRepo.create_user_worker(user)
         token = token_hex(32)
         hashed_token = sha256(token.encode()).hexdigest()
