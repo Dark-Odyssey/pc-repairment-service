@@ -19,7 +19,7 @@ class UserRepo(BaseRepo):
         now = datetime.now()
         payload = user_schema.model_dump(exclude_unset=True)
         if payload.get("password"):
-            payload["password_hash"] = Crypt.hash_password(payload["password"])
+            payload["password_hash"] = payload["password"]
             payload.pop("password")
         user = UserORM(
             **payload,

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
 from fastapi import HTTPException
-from typing import Sequence
+from fastapi.concurrency import run_in_threadpool
 from hashlib import sha256
 from tools.email import EmailHandler
 from secrets import token_hex
@@ -35,6 +35,8 @@ class UserService:
             raise HTTPException(status_code=400, detail="User with same credentials exists!")
 
         if isinstance(user, UserRegisterDTO):
+            hashed_password = await run_in_threadpool(Crypt.hash_password, user.password)
+            user.password = hashed_password
             return await self.__userRepo.create_user(user)
         elif isinstance(user, UserCreateAdminDTO):
             user_db = await self.__userRepo.create_user_admin(user)
@@ -75,7 +77,9 @@ class UserService:
         if not user_db or not user_db.password_hash:
             raise HTTPException(status_code=400, detail="Incorrect creds!")
 
-        if not Crypt.check_password(user.password, user_db.password_hash):
+        is_pasword_match = await run_in_threadpool(Crypt.check_password, user.password, user_db.password_hash)
+
+        if not is_pasword_match:
             raise HTTPException(status_code=400, detail="Incorrect creds!")
 
         return await JWTHandler.generate_tokens(user_db=user_db)

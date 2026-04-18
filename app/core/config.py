@@ -1,4 +1,5 @@
 from pathlib import Path
+from functools import cached_property
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,15 +31,15 @@ class Settings(BaseSettings):
 
     SALT: str
 
-    @property
+    @cached_property
     def PRIVATE_KEY(self) -> str:
         return self.PATH_PRIV_KEY.read_text()
     
-    @property
+    @cached_property
     def PUBLIC_KEY(self) -> str:
         return self.PATH_PUB_KEY.read_text()
 
-    @property
+    @cached_property
     def DATABASE_URL(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
