@@ -243,11 +243,10 @@ function App() {
             </header>
 
             <div className="hero-card">
-              <h1>Nowoczesny system zarządzania naprawami sprzętu komputerowego</h1>
+              <h1>Błyskawiczna naprawa Twojego sprzętu komputerowego</h1>
               <p className="hero-description">
-                Efektywne zarządzanie zleceniami serwisowymi oraz szybki dostęp do
-                informacji o statusie napraw. Rozwiązanie dedykowane dla małych i
-                średnich serwisów komputerowych.
+                Przywracamy laptopy i komputery do życia – szybko, skutecznie i bez ukrytych kosztów. 
+                Oddaj urządzenie w ręce ekspertów i na bieżąco sprawdzaj status swojej naprawy online.
               </p>
 
               <div className="hero-buttons">
@@ -256,6 +255,19 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="order-search" id="search">
+        <div className="container">
+          <div className="search-shell">
+            <h2>Sprawdź status swojej naprawy</h2>
+            <p>Wpisz numer zamówienia, aby sprawdzić na jakim etapie jest Twoje urządzenie.</p>
+            <form className="search-form" onSubmit={(e) => { e.preventDefault(); }}>
+              <input type="text" placeholder="Np. REP-2026-04-19" className="search-input" />
+              <button type="submit" className="btn btn-primary search-btn">Szukaj</button>
+            </form>
           </div>
         </div>
       </section>
