@@ -1,3 +1,4 @@
+import { useState } from "react";
 import logo from "./assets/logo.png";
 
 const authHighlights = [
@@ -21,6 +22,43 @@ const authStats = [
 ];
 
 function LoginPage({ onHelpClick }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginStatus, setLoginStatus] = useState("idle");
+  const [loginError, setLoginError] = useState("");
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    if (!email || !password) {
+      setLoginError("Wypełnij wszystkie pola.");
+      return;
+    }
+    
+    setLoginStatus("loading");
+    setLoginError("");
+
+    try {
+      const response = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Nieprawidłowy adres e-mail lub hasło.");
+      }
+
+      const data = await response.json();
+      localStorage.setItem("access_token", data.token);
+      setLoginStatus("success");
+    } catch (err) {
+      setLoginError(err.message);
+      setLoginStatus("error");
+    }
+  };
+
   return (
     <div className="auth-page">
       <div className="container auth-container">
@@ -69,7 +107,10 @@ function LoginPage({ onHelpClick }) {
                 Użyj adresu e-mail, aby przejść do panelu serwisowego.
               </p>
 
-              <form className="auth-form" onSubmit={(event) => event.preventDefault()}>
+              <form className="auth-form" onSubmit={handleLogin}>
+                {loginError && <div className="search-error" style={{marginTop: 0, marginBottom: '14px'}}>{loginError}</div>}
+                {loginStatus === 'success' && <div className="search-result" style={{marginTop: 0, marginBottom: '14px', padding: '16px', color: 'green', borderColor: 'green'}}>Zalogowano pomyślnie! Trwa przekierowywanie...</div>}
+                
                 <label className="auth-field">
                   <span>Adres e-mail</span>
                   <input
@@ -77,6 +118,8 @@ function LoginPage({ onHelpClick }) {
                     name="email"
                     placeholder="serwis@repairflow.pl"
                     autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </label>
 
@@ -87,6 +130,8 @@ function LoginPage({ onHelpClick }) {
                     name="password"
                     placeholder="Wpisz swoje hasło"
                     autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </label>
 
@@ -101,8 +146,8 @@ function LoginPage({ onHelpClick }) {
                   </a>
                 </div>
 
-                <button type="submit" className="btn auth-submit-btn">
-                  Zaloguj do panelu
+                <button type="submit" className="btn auth-submit-btn" disabled={loginStatus === 'loading' || loginStatus === 'success'}>
+                  {loginStatus === 'loading' ? 'Logowanie...' : 'Zaloguj do panelu'}
                 </button>
               </form>
 

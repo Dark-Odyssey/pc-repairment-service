@@ -165,6 +165,36 @@ function App() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [screen, setScreen] = useState(getScreenFromHash);
 
+  // Search state
+  const [orderNumber, setOrderNumber] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [searchStatus, setSearchStatus] = useState("idle");
+  const [orderData, setOrderData] = useState(null);
+  const [searchError, setSearchError] = useState("");
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!orderNumber || !accessCode) {
+      setSearchError("Wypełnij oba pola.");
+      return;
+    }
+    setSearchStatus("loading");
+    setSearchError("");
+    setOrderData(null);
+    try {
+      const response = await fetch(`/api/v1/user/single-order?order_number=${orderNumber}&access_code=${accessCode}`);
+      if (!response.ok) {
+        throw new Error("Nie znaleziono zamówienia lub błędny kod dostępu.");
+      }
+      const data = await response.json();
+      setOrderData(data);
+      setSearchStatus("success");
+    } catch (err) {
+      setSearchError(err.message);
+      setSearchStatus("error");
+    }
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
@@ -264,10 +294,43 @@ function App() {
           <div className="search-shell">
             <h2>Sprawdź status swojej naprawy</h2>
             <p>Wpisz numer zamówienia, aby sprawdzić na jakim etapie jest Twoje urządzenie.</p>
-            <form className="search-form" onSubmit={(e) => { e.preventDefault(); }}>
-              <input type="text" placeholder="Np. REP-2026-04-19" className="search-input" />
-              <button type="submit" className="btn btn-primary search-btn">Szukaj</button>
+            <form className="search-form" onSubmit={handleSearch}>
+              <input 
+                type="text" 
+                placeholder="Numer zamówienia (np. ORD-123)" 
+                className="search-input" 
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+              />
+              <input 
+                type="text" 
+                placeholder="Kod dostępu" 
+                className="search-input" 
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary search-btn" disabled={searchStatus === 'loading'}>
+                {searchStatus === 'loading' ? 'Szukanie...' : 'Szukaj'}
+              </button>
             </form>
+
+            {searchError && <div className="search-error">{searchError}</div>}
+            
+            {searchStatus === 'success' && orderData && (
+              <div className="search-result">
+                <div className="result-header">
+                  <h3>Status: <span>{orderData.status}</span></h3>
+                  <p>Model: {orderData.device_model}</p>
+                </div>
+                <div className="result-details">
+                  <p><strong>Zgłoszony problem:</strong> {orderData.issue_description}</p>
+                  <p><strong>Data przyjęcia:</strong> {new Date(orderData.created_at).toLocaleDateString('pl-PL')}</p>
+                  {orderData.estimated_completion_date && (
+                    <p><strong>Szacowana data zakończenia:</strong> {new Date(orderData.estimated_completion_date).toLocaleDateString('pl-PL')}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
