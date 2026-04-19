@@ -21,7 +21,7 @@ class UserCreateAdminDTO(UserCreateWorkerDTO):
     role: RoleEnum
 
 class UserCreateFullDTO(UserCreateAdminDTO):
-    password: str = Field(min_length=8, max_length=20)
+    password: str
     is_active: bool = True
 
 class UserOutputDTO(BaseModel):
