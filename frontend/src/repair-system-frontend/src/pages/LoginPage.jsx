@@ -70,9 +70,9 @@ export default function LoginPage() {
       login(data.token, userData);
       setLoginStatus("success");
       
-      if (userData.role === "admin") {
+      if (userData.role === "Admin") {
         navigate("/dashboard/admin");
-      } else if (userData.role === "worker") {
+      } else if (userData.role === "Worker") {
         navigate("/dashboard/worker");
       } else {
         navigate("/");

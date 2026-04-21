@@ -85,7 +85,7 @@ const testimonialSlides = [
     {
       title: "Bardzo wygodny system",
       quote: "Cały proces od oddania laptopa do odbioru był uporządkowany i wygodny. To oszczędza czas zarówno klientowi, jak i serwisowi.",
-      name: "Tomasz Lewandowski",
+      name: "Lance Johnson",
       role: "Programista",
       image: "https://randomuser.me/api/portraits/men/54.jpg",
     },
@@ -154,7 +154,7 @@ export default function LandingPage() {
     }
     setSearchStatus("loading");
     setSearchError("");
-    
+
     // We don't need to fetch it here, we just navigate to the status page which will fetch it.
     // But we could ping the endpoint to make sure it's valid before navigating to avoid a flicker.
     try {
@@ -213,7 +213,7 @@ export default function LandingPage() {
             <div className="hero-card">
               <h1>Błyskawiczna naprawa Twojego sprzętu komputerowego</h1>
               <p className="hero-description">
-                Przywracamy laptopy i komputery do życia – szybko, skutecznie i bez ukrytych kosztów. 
+                Przywracamy laptopy i komputery do życia – szybko, skutecznie i bez ukrytych kosztów.
                 Oddaj urządzenie w ręce ekspertów i na bieżąco sprawdzaj status swojej naprawy online.
               </p>
 
@@ -233,17 +233,17 @@ export default function LandingPage() {
             <h2>Sprawdź status swojej naprawy</h2>
             <p>Wpisz numer zamówienia, aby sprawdzić na jakim etapie jest Twoje urządzenie.</p>
             <form className="search-form" onSubmit={handleSearch}>
-              <input 
-                type="text" 
-                placeholder="Numer zamówienia (np. ORD-123)" 
-                className="search-input" 
+              <input
+                type="text"
+                placeholder="Numer zamówienia (np. ORD-123)"
+                className="search-input"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
               />
-              <input 
-                type="text" 
-                placeholder="Kod dostępu" 
-                className="search-input" 
+              <input
+                type="text"
+                placeholder="Kod dostępu"
+                className="search-input"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
               />
@@ -413,7 +413,7 @@ export default function LandingPage() {
                 <h3>Nawigacja</h3>
                 <div className="footer-links">
                   {footerNavigation.map((item) => (
-                    <button onClick={openSection(item.href.replace('#', ''))} key={item.label} style={{background: 'none', border: 'none', color: 'inherit', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left'}}>
+                    <button onClick={openSection(item.href.replace('#', ''))} key={item.label} style={{ background: 'none', border: 'none', color: 'inherit', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
                       {item.label}
                     </button>
                   ))}

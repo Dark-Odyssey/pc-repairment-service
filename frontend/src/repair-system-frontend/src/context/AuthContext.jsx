@@ -4,51 +4,87 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+export function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('access_token'));
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const response = await fetch('/api/v1/user/', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-        } else {
-          localStorage.removeItem('access_token');
-          setToken(null);
+  const performRefreshToken = async () => {
+    const csrf = getCookie('x_csrf_token');
+    if (!csrf) return null;
+    try {
+      const response = await fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'X_CSRF_TOKEN': csrf
         }
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-      } finally {
-        setLoading(false);
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.token);
+        return data.token;
       }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const initAuth = async () => {
+      let currentToken = token;
+      if (!currentToken) {
+        currentToken = await performRefreshToken();
+      }
+      if (currentToken) {
+        try {
+          const response = await fetch('/api/v1/user/', {
+            headers: {
+              'Authorization': `Bearer ${currentToken}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (isMounted) setUser(data);
+          } else {
+            if (isMounted) {
+              setToken(null);
+              setUser(null);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch user:", error);
+        }
+      }
+      if (isMounted) setLoading(false);
     };
-    fetchUser();
-  }, [token]);
+    initAuth();
+    return () => { isMounted = false; };
+  }, []);
 
   const login = (newToken, userData) => {
-    localStorage.setItem('access_token', newToken);
     setToken(newToken);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
+    const csrf = getCookie('x_csrf_token');
+    fetch('/api/v1/auth/logout', { 
+      method: 'POST',
+      headers: {
+        'X_CSRF_TOKEN': csrf || ''
+      }
+    }).catch(() => {});
     setToken(null);
     setUser(null);
-    // Attempt backend logout, ignoring errors if refresh token missing
-    fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {});
   };
 
   return (

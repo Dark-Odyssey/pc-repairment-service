@@ -35,11 +35,10 @@ function AppRoutes() {
       {/* Trasa dla klienta (może wymagać ID w URL lub polegać na lokalnym stanie/sesji po wpisaniu kodu) */}
       <Route path="/status" element={<ClientDashboard />} />
 
-      {/* Zabezpieczone trasy dla pracownika i admina */}
       <Route 
         path="/dashboard/worker/*" 
         element={
-          <ProtectedRoute allowedRoles={['worker', 'admin']}>
+          <ProtectedRoute allowedRoles={['Worker', 'Admin']}>
             <WorkerDashboard />
           </ProtectedRoute>
         } 
@@ -47,7 +46,7 @@ function AppRoutes() {
       <Route 
         path="/dashboard/admin/*" 
         element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['Admin']}>
             <AdminDashboard />
           </ProtectedRoute>
         } 
