@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Package, Users, Plus, Search, Edit, Trash2 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Modal from '../components/Modal';
+import { extractCollection } from '../utils/api';
 
 const statusMap = {
   "Created": { label: "Utworzone", class: "bg-gray-100 text-gray-800" },
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
       });
       if (response.ok) {
         const data = await response.json();
-        setOrders(data.items || data || []);
+        setOrders(extractCollection(data));
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -73,7 +74,7 @@ export default function AdminDashboard() {
       });
       if (response.ok) {
         const data = await response.json();
-        setUsersList(data.items || data || []);
+        setUsersList(extractCollection(data));
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
       });
       if (response.ok) {
         const data = await response.json();
-        setDeviceTypes(data.items || data || []);
+        setDeviceTypes(extractCollection(data));
       }
     } catch (error) {
       console.error('Failed to fetch device types:', error);
