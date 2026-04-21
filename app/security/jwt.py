@@ -62,7 +62,6 @@ class JWTHandler:
         }
         refresh_payload = {
             "sub": str(user_db.id),
-            "role": str(user_db.role),
             "token_type": "refresh",
             "csrf": csrf_token
         }
