@@ -79,9 +79,59 @@ function formatDate(value, withTime = false) {
     return 'Brak danych';
   }
 
-  return withTime
-    ? date.toLocaleString('pl-PL')
-    : date.toLocaleDateString('pl-PL');
+  return withTime ? date.toLocaleString('pl-PL') : date.toLocaleDateString('pl-PL');
+}
+
+function getHistoryLines(entry) {
+  const lines = [];
+
+  if ((entry.old_status || '') !== (entry.new_status || '')) {
+    lines.push(
+      entry.old_status
+        ? `Status: ${getStatusInfo(entry.old_status).label} -> ${getStatusInfo(entry.new_status).label}`
+        : `Status ustawiono na: ${getStatusInfo(entry.new_status).label}`
+    );
+  }
+
+  if ((entry.old_estimated_completion_date || '') !== (entry.new_estimated_completion_date || '')) {
+    lines.push(
+      entry.old_estimated_completion_date
+        ? `Termin: ${formatDate(entry.old_estimated_completion_date)} -> ${formatDate(entry.new_estimated_completion_date)}`
+        : `Ustawiono termin: ${formatDate(entry.new_estimated_completion_date)}`
+    );
+  }
+
+  return lines.length > 0 ? lines : ['Zaktualizowano zlecenie'];
+}
+
+function OrderHistoryTimeline({ history, compact = false }) {
+  const entries = Array.isArray(history) ? history : [];
+
+  if (entries.length === 0) {
+    return (
+      <div style={{ padding: compact ? '14px 16px' : '18px 20px', borderRadius: '14px', backgroundColor: '#f9fafb', color: '#6b7280' }}>
+        Brak zapisanej historii zmian.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'relative', borderLeft: '2px solid #e5e7eb', paddingLeft: compact ? '18px' : '24px', marginLeft: compact ? '6px' : '12px' }}>
+      {entries.map((entry, index) => (
+        <div key={`${entry.changed_at || index}-${index}`} style={{ marginBottom: compact ? '18px' : '24px', position: 'relative' }}>
+          <div style={{ position: 'absolute', left: compact ? '-27px' : '-33px', top: '4px', width: compact ? '14px' : '16px', height: compact ? '14px' : '16px', borderRadius: '50%', backgroundColor: '#fff', border: '2px solid #ef3b2d' }} />
+          <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>
+            {formatDate(entry.changed_at, true)}
+          </div>
+          {getHistoryLines(entry).map((line) => (
+            <div key={line} style={{ fontWeight: compact ? '400' : '500', color: '#111827', lineHeight: '1.6' }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function PageFrame({ children }) {
@@ -113,7 +163,7 @@ export default function ClientDashboard() {
   const orderNumber = searchParams.get('order');
   const accessCode = searchParams.get('code');
   const hasLookupParams = Boolean(orderNumber && accessCode);
-  const { user, token, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, authFetch } = useAuth();
 
   const [orderData, setOrderData] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -147,15 +197,11 @@ export default function ClientDashboard() {
           return;
         }
 
-        if (!user || !token) {
+        if (!user) {
           throw new Error('Brak danych klienta. Zaloguj sie ponownie albo sprawdz zlecenie kodem dostepu.');
         }
 
-        const response = await fetch('/api/v1/user/orders', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await authFetch('/api/v1/user/orders');
 
         if (!response.ok) {
           throw new Error('Nie udalo sie pobrac listy zlecen klienta.');
@@ -181,7 +227,7 @@ export default function ClientDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [accessCode, authLoading, hasLookupParams, orderNumber, token, user]);
+  }, [accessCode, authLoading, hasLookupParams, orderNumber, user]);
 
   if (loading || (!hasLookupParams && authLoading)) {
     return (
@@ -266,24 +312,10 @@ export default function ClientDashboard() {
             </div>
           </div>
 
-          {history.length > 0 && (
-            <div style={{ marginTop: '40px' }}>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '24px', color: '#333' }}>Historia zlecenia</h3>
-              <div style={{ position: 'relative', borderLeft: '2px solid #e5e7eb', paddingLeft: '24px', marginLeft: '12px' }}>
-                {history.map((hist, idx) => (
-                  <div key={idx} style={{ marginBottom: '24px', position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: '-33px', top: '4px', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#fff', border: '2px solid #ef3b2d' }}></div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '4px' }}>
-                      {formatDate(hist.changed_at, true)}
-                    </div>
-                    <div style={{ fontWeight: '500', color: '#111827' }}>
-                      Zmiana statusu na: {getStatusInfo(hist.new_status).label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div style={{ marginTop: '40px' }}>
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '24px', color: '#333' }}>Historia zlecenia</h3>
+            <OrderHistoryTimeline history={history} />
+          </div>
         </div>
       </PageFrame>
     );
@@ -314,6 +346,7 @@ export default function ClientDashboard() {
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status);
               const StatusIcon = statusInfo.icon;
+              const history = Array.isArray(order.history) ? order.history : [];
 
               return (
                 <article
@@ -354,6 +387,11 @@ export default function ClientDashboard() {
                   <div>
                     <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Planowane zakonczenie</div>
                     <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.estimated_completion_date)}</div>
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827', marginBottom: '14px' }}>Historia zmian</div>
+                    <OrderHistoryTimeline history={history} compact />
                   </div>
                 </article>
               );

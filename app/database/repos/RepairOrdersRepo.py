@@ -94,6 +94,7 @@ class RepairOrdersRepo(BaseRepo):
             joinedload(RepairOrdersORM.worker_created),
             joinedload(RepairOrdersORM.worker_updated),
             joinedload(RepairOrdersORM.device_type),
+            selectinload(RepairOrdersORM.history)
         ))
         return result.scalar_one_or_none()
 

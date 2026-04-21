@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({ isOpen, onClose, title, children, maxWidth = '500px' }) {
   if (!isOpen) return null;
 
   return (
@@ -17,7 +17,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
         backgroundColor: '#fff',
         borderRadius: '16px',
         width: '100%',
-        maxWidth: '500px',
+        maxWidth,
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'

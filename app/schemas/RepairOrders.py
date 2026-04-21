@@ -18,6 +18,7 @@ class RepairOrdersDTO(RepairOrdersCreateDTO):
     id: int
     order_number: str
     estimated_completion_date: datetime | None
+    service_note: str | None
     status: StatusEnum
     created_by_employee_id: int
     updated_by_employee_id: int
@@ -36,6 +37,7 @@ class RepairOrderUserDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     order_number: str
     estimated_completion_date: datetime | None
+    service_note: str | None
     status: StatusEnum
     created_at: datetime
     device_model: str
