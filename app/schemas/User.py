@@ -31,12 +31,12 @@ class UserOutputDTO(BaseModel):
     last_name: str
     email: EmailStr
     phone_number: PhoneNumber
+    role: RoleEnum
 
 class UserOutputWorkerDTO(UserOutputDTO):
     id: int
 
 class UserFullOutput(UserOutputWorkerDTO):
-    role: RoleEnum
     is_active: bool
     created_at: datetime
     updated_at: datetime
