@@ -25,14 +25,14 @@ export default function ForgotPasswordPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Nie udalo sie wyslac linku do resetu hasla.');
+        throw new Error('Nie udało się wysłać linku do resetu hasła.');
       }
 
       setStatus('success');
-      setMessage('Jesli konto istnieje, link do resetu hasla zostal wyslany na podany adres e-mail.');
+      setMessage('Jeśli konto istnieje, link do resetu hasła został wysłany na podany adres e-mail.');
     } catch (error) {
       setStatus('error');
-      setMessage(error.message || 'Wystapil blad podczas wysylania formularza.');
+      setMessage(error.message || 'Wystąpił błąd podczas wysyłania formularza.');
     }
   };
 
@@ -41,16 +41,16 @@ export default function ForgotPasswordPage() {
       <div className="container auth-container">
         <div className="auth-shell">
           <AuthShowcase
-            title="Odzyskaj dostep do swojego konta"
-            intro="Podaj adres e-mail, a przygotujemy dalsze kroki do bezpiecznego ustawienia nowego hasla."
+            title="Odzyskaj dostęp do swojego konta"
+            intro="Podaj adres e-mail, a przygotujemy dalsze kroki do bezpiecznego ustawienia nowego hasła."
             backTo="/login"
-            backLabel="Wroc do logowania"
+            backLabel="Wróć do logowania"
           />
 
           <section className="auth-form-panel">
             <div className="auth-form-card">
-              <p className="auth-form-eyebrow">Reset hasla</p>
-              <h2>Odzyskanie hasla</h2>
+              <p className="auth-form-eyebrow">Reset hasła</p>
+              <h2>Odzyskanie hasła</h2>
               <p className="auth-form-copy">
                 Wpisz adres e-mail przypisany do konta pracownika, administratora albo klienta.
               </p>
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
                 </label>
 
                 <button type="submit" className="btn auth-submit-btn" disabled={status === 'loading' || status === 'success'}>
-                  {status === 'loading' ? 'Wysylanie...' : 'Wyslij link do resetu'}
+                  {status === 'loading' ? 'Wysyłanie...' : 'Wyślij link do resetu'}
                 </button>
               </form>
 
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <Link to="/login" className="auth-secondary-btn">
-                Wroc do logowania
+                Wróć do logowania
               </Link>
             </div>
           </section>

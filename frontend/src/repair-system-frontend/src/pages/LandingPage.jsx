@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const features = [
   {
@@ -139,33 +140,34 @@ const footerSocials = [
 export default function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
-  // Search state
   const [orderNumber, setOrderNumber] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [searchStatus, setSearchStatus] = useState("idle");
   const [searchError, setSearchError] = useState("");
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (event) => {
+    event.preventDefault();
+
     if (!orderNumber || !accessCode) {
       setSearchError("Wypełnij oba pola.");
       return;
     }
+
     setSearchStatus("loading");
     setSearchError("");
 
-    // We don't need to fetch it here, we just navigate to the status page which will fetch it.
-    // But we could ping the endpoint to make sure it's valid before navigating to avoid a flicker.
     try {
       const response = await fetch(`/api/v1/user/single-order?order_number=${orderNumber}&access_code=${accessCode}`);
       if (!response.ok) {
         throw new Error("Nie znaleziono zamówienia lub błędny kod dostępu.");
       }
+
       setSearchStatus("success");
       navigate(`/status?order=${orderNumber}&code=${accessCode}`);
-    } catch (err) {
-      setSearchError(err.message);
+    } catch (error) {
+      setSearchError(error.message);
       setSearchStatus("error");
     }
   };
@@ -177,6 +179,15 @@ export default function LandingPage() {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
+
+  const accountLink = user?.role === "Admin"
+    ? "/dashboard/admin"
+    : user?.role === "Worker"
+      ? "/dashboard/worker"
+      : "/status";
+
+  const accountButtonTarget = !loading && user ? accountLink : "/login";
+  const accountButtonLabel = !loading && user ? "Przejdź do konta" : "Zaloguj się";
 
   return (
     <div>
@@ -204,8 +215,8 @@ export default function LandingPage() {
                   <a href="#contact" onClick={openSection("contact")}>Kontakt</a>
                 </nav>
 
-                <Link to="/login" className="btn btn-primary">
-                  Zaloguj się
+                <Link to={accountButtonTarget} className="btn btn-primary">
+                  {accountButtonLabel}
                 </Link>
               </div>
             </header>
@@ -238,17 +249,17 @@ export default function LandingPage() {
                 placeholder="Numer zamówienia (np. ORD-123)"
                 className="search-input"
                 value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
+                onChange={(event) => setOrderNumber(event.target.value)}
               />
               <input
                 type="text"
                 placeholder="Kod dostępu"
                 className="search-input"
                 value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
+                onChange={(event) => setAccessCode(event.target.value)}
               />
-              <button type="submit" className="btn btn-primary search-btn" disabled={searchStatus === 'loading'}>
-                {searchStatus === 'loading' ? 'Szukanie...' : 'Szukaj'}
+              <button type="submit" className="btn btn-primary search-btn" disabled={searchStatus === "loading"}>
+                {searchStatus === "loading" ? "Szukanie..." : "Szukaj"}
               </button>
             </form>
 
@@ -385,8 +396,8 @@ export default function LandingPage() {
                 <button onClick={openSection("how")} className="btn cta-btn-light">
                   Zobacz jak to działa
                 </button>
-                <Link to="/login" className="btn cta-btn-outline">
-                  Zaloguj się
+                <Link to={accountButtonTarget} className="btn cta-btn-outline">
+                  {accountButtonLabel}
                 </Link>
               </div>
             </div>
@@ -413,7 +424,11 @@ export default function LandingPage() {
                 <h3>Nawigacja</h3>
                 <div className="footer-links">
                   {footerNavigation.map((item) => (
-                    <button onClick={openSection(item.href.replace('#', ''))} key={item.label} style={{ background: 'none', border: 'none', color: 'inherit', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                    <button
+                      onClick={openSection(item.href.replace("#", ""))}
+                      key={item.label}
+                      style={{ background: "none", border: "none", color: "inherit", padding: 0, font: "inherit", cursor: "pointer", textAlign: "left" }}
+                    >
                       {item.label}
                     </button>
                   ))}
@@ -432,7 +447,7 @@ export default function LandingPage() {
               <div className="footer-column footer-contact">
                 <h3>Kontakt</h3>
                 <div className="footer-links">
-                  <span>ul. Serwisowa 24, 00-145 Warszawa</span>
+                  <span>Szczecin, ul. Cyfrowa 8</span>
                   <a href="mailto:kontakt@repairflow.pl">kontakt@repairflow.pl</a>
                   <a href="tel:+48225032040">+48 22 503 20 40</a>
                 </div>

@@ -8,24 +8,24 @@ const authHighlights = [
   },
   {
     title: 'Szybki kontakt z klientem',
-    description: 'Wysylaj jasne informacje o postepie bez chaosu i zbednych telefonow.',
+    description: 'Wysyłaj jasne informacje o postępie bez chaosu i zbędnych telefonów.',
   },
   {
     title: 'Historia serwisowa',
-    description: 'Miej pod reka pelny przebieg kazdej naprawy oraz dane urzadzen.',
+    description: 'Miej pod ręką pełny przebieg każdej naprawy oraz dane urządzeń.',
   },
 ];
 
 const authStats = [
-  { value: '24/7', label: 'dostep do panelu' },
-  { value: '1 panel', label: 'caly proces napraw' },
+  { value: '24/7', label: 'dostęp do panelu' },
+  { value: '1 panel', label: 'cały proces napraw' },
 ];
 
 export default function AuthShowcase({
   title,
   intro,
   backTo = '/',
-  backLabel = 'Wroc na strone glowna',
+  backLabel = 'Wróć na stronę główną',
 }) {
   return (
     <section className="auth-showcase">

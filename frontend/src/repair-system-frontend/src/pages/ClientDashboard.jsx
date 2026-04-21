@@ -1,56 +1,49 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle, Clock, Package } from 'lucide-react';
-import logo from '../assets/logo.png';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, CheckCircle, Clock, House, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import DashboardFrame from '../components/DashboardFrame';
 import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
 
 const statusMap = {
   Created: {
     label: 'Utworzone',
-    accent: '#9ca3af',
     background: '#f3f4f6',
     color: '#374151',
     icon: Clock,
   },
   Accepted: {
     label: 'Zaakceptowane',
-    accent: '#60a5fa',
     background: '#dbeafe',
     color: '#1d4ed8',
     icon: Clock,
   },
   'In diagnostics': {
     label: 'W diagnozie',
-    accent: '#fbbf24',
     background: '#fef3c7',
     color: '#b45309',
     icon: Clock,
   },
   'Waiting for parts': {
-    label: 'Oczekuje na czesci',
-    accent: '#fb923c',
+    label: 'Oczekuje na części',
     background: '#ffedd5',
     color: '#c2410c',
     icon: AlertTriangle,
   },
   'In service': {
     label: 'W serwisie',
-    accent: '#a78bfa',
     background: '#ede9fe',
     color: '#6d28d9',
     icon: Package,
   },
   'Ready for collection': {
     label: 'Gotowe do odbioru',
-    accent: '#34d399',
     background: '#d1fae5',
     color: '#047857',
     icon: CheckCircle,
   },
   Completed: {
-    label: 'Zakonczone',
-    accent: '#10b981',
+    label: 'Zakończone',
     background: '#d1fae5',
     color: '#065f46',
     icon: CheckCircle,
@@ -61,7 +54,6 @@ function getStatusInfo(status) {
   return (
     statusMap[status] || {
       label: status || 'Nieznany status',
-      accent: '#d1d5db',
       background: '#f9fafb',
       color: '#374151',
       icon: Clock,
@@ -119,10 +111,19 @@ function OrderHistoryTimeline({ history, compact = false }) {
     <div style={{ position: 'relative', borderLeft: '2px solid #e5e7eb', paddingLeft: compact ? '18px' : '24px', marginLeft: compact ? '6px' : '12px' }}>
       {entries.map((entry, index) => (
         <div key={`${entry.changed_at || index}-${index}`} style={{ marginBottom: compact ? '18px' : '24px', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: compact ? '-27px' : '-33px', top: '4px', width: compact ? '14px' : '16px', height: compact ? '14px' : '16px', borderRadius: '50%', backgroundColor: '#fff', border: '2px solid #ef3b2d' }} />
-          <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>
-            {formatDate(entry.changed_at, true)}
-          </div>
+          <div
+            style={{
+              position: 'absolute',
+              left: compact ? '-27px' : '-33px',
+              top: '4px',
+              width: compact ? '14px' : '16px',
+              height: compact ? '14px' : '16px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '2px solid #ef3b2d',
+            }}
+          />
+          <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>{formatDate(entry.changed_at, true)}</div>
           {getHistoryLines(entry).map((line) => (
             <div key={line} style={{ fontWeight: compact ? '400' : '500', color: '#111827', lineHeight: '1.6' }}>
               {line}
@@ -134,41 +135,49 @@ function OrderHistoryTimeline({ history, compact = false }) {
   );
 }
 
-function PageFrame({ children }) {
-  return (
-    <div className="client-dashboard">
-      <header className="hero-navbar" style={{ backgroundColor: '#fff', borderBottom: '1px solid #eee', position: 'relative' }}>
-        <div className="hero-navbar-inner container">
-          <div className="logo">
-            <Link to="/">
-              <img src={logo} alt="RepairFlow logo" className="logo-image" style={{ height: '40px' }} />
-            </Link>
-          </div>
-          <Link to="/" className="btn btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <ArrowLeft size={18} />
-            Wroc do strony glownej
-          </Link>
-        </div>
-      </header>
+function PageFrame({ children, user, onLogout, lookupMode = false }) {
+  const navItems = lookupMode || !user
+    ? [
+        { key: 'home', label: 'Strona główna', icon: House, to: '/' },
+        { key: 'status', label: 'Status zlecenia', icon: Package, active: true },
+      ]
+    : [
+        { key: 'home', label: 'Strona główna', icon: House, to: '/' },
+        { key: 'orders', label: 'Moje zlecenia', icon: Package, active: true },
+      ];
 
-      <main className="container" style={{ paddingTop: '60px', paddingBottom: '60px' }}>
-        {children}
-      </main>
-    </div>
+  return (
+    <DashboardFrame
+      badge={lookupMode || !user ? 'Status' : 'Klient'}
+      badgeTone={lookupMode || !user ? 'status' : 'client'}
+      subtitle={lookupMode || !user ? 'śledzenie naprawy online' : 'panel klienta'}
+      navItems={navItems}
+      user={lookupMode ? null : user}
+      onLogout={lookupMode ? null : onLogout}
+      headerTitle={lookupMode ? 'Status zlecenia' : 'Moje zlecenia'}
+    >
+      {children}
+    </DashboardFrame>
   );
 }
 
 export default function ClientDashboard() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orderNumber = searchParams.get('order');
   const accessCode = searchParams.get('code');
   const hasLookupParams = Boolean(orderNumber && accessCode);
-  const { user, loading: authLoading, authFetch } = useAuth();
+  const { user, loading: authLoading, authFetch, logout } = useAuth();
 
   const [orderData, setOrderData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -187,7 +196,7 @@ export default function ClientDashboard() {
         if (hasLookupParams) {
           const response = await fetch(`/api/v1/user/single-order?order_number=${orderNumber}&access_code=${accessCode}`);
           if (!response.ok) {
-            throw new Error('Nie znaleziono zlecenia lub kod dostepu jest nieprawidlowy.');
+            throw new Error('Nie znaleziono zlecenia lub kod dostępu jest nieprawidłowy.');
           }
 
           const data = normalizeRepairOrder(await response.json());
@@ -198,22 +207,21 @@ export default function ClientDashboard() {
         }
 
         if (!user) {
-          throw new Error('Brak danych klienta. Zaloguj sie ponownie albo sprawdz zlecenie kodem dostepu.');
+          throw new Error('Brak danych klienta. Zaloguj się ponownie albo sprawdź zlecenie kodem dostępu.');
         }
 
         const response = await authFetch('/api/v1/user/orders');
-
         if (!response.ok) {
-          throw new Error('Nie udalo sie pobrac listy zlecen klienta.');
+          throw new Error('Nie udało się pobrać listy zleceń klienta.');
         }
 
-          const data = await response.json();
-          if (isMounted) {
-            setOrders(extractRepairOrders(data));
-          }
+        const data = await response.json();
+        if (isMounted) {
+          setOrders(extractRepairOrders(data));
+        }
       } catch (err) {
         if (isMounted) {
-          setError(err.message || 'Wystapil nieoczekiwany blad.');
+          setError(err.message || 'Wystąpił nieoczekiwany błąd.');
         }
       } finally {
         if (isMounted) {
@@ -227,13 +235,23 @@ export default function ClientDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [accessCode, authLoading, hasLookupParams, orderNumber, user]);
+  }, [accessCode, authLoading, authFetch, hasLookupParams, orderNumber, user]);
+
+  const activeOrdersCount = useMemo(
+    () => orders.filter((order) => order.status !== 'Completed' && order.status !== 'Ready for collection').length,
+    [orders]
+  );
+
+  const readyOrdersCount = useMemo(
+    () => orders.filter((order) => order.status === 'Ready for collection' || order.status === 'Completed').length,
+    [orders]
+  );
 
   if (loading || (!hasLookupParams && authLoading)) {
     return (
-      <PageFrame>
-        <div className="dashboard-card" style={{ backgroundColor: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
-          Ladowanie szczegolow zlecenia...
+      <PageFrame user={user} onLogout={handleLogout} lookupMode={hasLookupParams}>
+        <div className="rf-dashboard-card">
+          <div className="rf-dashboard-card-body">Ładowanie szczegółów zlecenia...</div>
         </div>
       </PageFrame>
     );
@@ -241,11 +259,17 @@ export default function ClientDashboard() {
 
   if (error) {
     return (
-      <PageFrame>
-        <div className="dashboard-card" style={{ backgroundColor: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
-          <h2 style={{ marginBottom: '12px' }}>Wystapil blad</h2>
-          <p style={{ color: '#4b5563', marginBottom: '20px' }}>{error}</p>
-          <Link to="/" className="btn btn-primary">Wroc na strone glowna</Link>
+      <PageFrame user={user} onLogout={handleLogout} lookupMode={hasLookupParams}>
+        <div className="rf-dashboard-card">
+          <div className="rf-dashboard-card-body rf-dashboard-stack">
+            <div>
+              <h2 className="rf-dashboard-heading">Wystąpił błąd</h2>
+              <p style={{ color: '#475569', lineHeight: '1.7' }}>{error}</p>
+            </div>
+            <div>
+              <Link to="/" className="rf-dashboard-action rf-dashboard-action--primary">Wróć na stronę główną</Link>
+            </div>
+          </div>
         </div>
       </PageFrame>
     );
@@ -262,59 +286,67 @@ export default function ClientDashboard() {
       orderData.status !== 'Ready for collection';
 
     return (
-      <PageFrame>
-        <div className="dashboard-card" style={{ backgroundColor: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '30px', borderBottom: '1px solid #eee', paddingBottom: '30px' }}>
-            <div>
-              <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Zlecenie: {orderData.order_number}</h1>
-              <p style={{ color: '#666', fontSize: '1.1rem' }}>Model: <strong>{orderData.device_model}</strong></p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '999px', backgroundColor: statusInfo.background, color: statusInfo.color }}>
-                <StatusIcon size={20} />
-                <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{statusInfo.label}</span>
+      <PageFrame user={user} onLogout={handleLogout} lookupMode={hasLookupParams}>
+        <div className="rf-dashboard-section">
+          <div className="rf-dashboard-card">
+            <div className="rf-dashboard-card-body rf-dashboard-stack">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '8px' }}>Numer zgłoszenia</div>
+                  <h2 style={{ color: '#111827', fontSize: '1.85rem', fontWeight: '800', letterSpacing: '-0.03em' }}>{orderData.order_number}</h2>
+                  <p style={{ color: '#475569', marginTop: '8px' }}>Sprzęt: <strong>{orderData.device_model || 'Brak danych'}</strong></p>
+                </div>
+
+                <div className="rf-dashboard-pill" style={{ backgroundColor: statusInfo.background, color: statusInfo.color, minHeight: '38px', padding: '0 16px', gap: '8px', display: 'inline-flex' }}>
+                  <StatusIcon size={18} />
+                  <span>{statusInfo.label}</span>
+                </div>
+              </div>
+
+              <div className="rf-dashboard-statgrid">
+                <div className="rf-dashboard-stat">
+                  <label>Data przyjęcia</label>
+                  <strong>{formatDate(orderData.created_at)}</strong>
+                </div>
+                <div className="rf-dashboard-stat">
+                  <label>Planowane zakończenie</label>
+                  <strong>{formatDate(orderData.estimated_completion_date)}</strong>
+                </div>
+                <div className="rf-dashboard-stat">
+                  <label>Status naprawy</label>
+                  <strong>{statusInfo.label}</strong>
+                </div>
               </div>
             </div>
           </div>
 
-          {isDelayed && (
-            <div style={{ backgroundColor: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', gap: '16px' }}>
-              <AlertTriangle color="#ef4444" size={24} />
+          {isDelayed ? (
+            <div className="rf-dashboard-alert">
+              <AlertTriangle color="#ef4444" size={22} />
               <div>
-                <h4 style={{ margin: '0 0 8px 0', color: '#991b1b' }}>Informacja o opoznieniu</h4>
-                <p style={{ margin: 0, color: '#b91c1c' }}>
-                  Realizacja tego zlecenia trwa dluzej niz pierwotnie zakladano.
-                </p>
+                <h4>Informacja o opóźnieniu</h4>
+                <p>Realizacja tego zlecenia trwa dłużej niż pierwotnie zakładano.</p>
               </div>
             </div>
-          )}
+          ) : null}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#333' }}>Szczegoly usterki</h3>
-              <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '12px' }}>
-                <p style={{ lineHeight: '1.6', color: '#4b5563', margin: 0 }}>{orderData.issue_description}</p>
-              </div>
+          <div className="rf-dashboard-detail-grid">
+            <div className="rf-dashboard-note">
+              <h3>Szczegóły usterki</h3>
+              <p>{orderData.issue_description || 'Brak opisu usterki.'}</p>
             </div>
-
-            <div>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#333' }}>Harmonogram naprawy</h3>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <li style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #eee' }}>
-                  <span style={{ color: '#6b7280' }}>Data przyjecia:</span>
-                  <strong style={{ color: '#111827' }}>{formatDate(orderData.created_at)}</strong>
-                </li>
-                <li style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #eee' }}>
-                  <span style={{ color: '#6b7280' }}>Szacowany termin zakonczenia:</span>
-                  <strong style={{ color: '#111827' }}>{formatDate(orderData.estimated_completion_date)}</strong>
-                </li>
-              </ul>
+            <div className="rf-dashboard-note">
+              <h3>Harmonogram naprawy</h3>
+              <p>Przyjęcie: {formatDate(orderData.created_at)}</p>
+              <p style={{ marginTop: '10px' }}>Szacowany termin zakończenia: {formatDate(orderData.estimated_completion_date)}</p>
             </div>
           </div>
 
-          <div style={{ marginTop: '40px' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '24px', color: '#333' }}>Historia zlecenia</h3>
-            <OrderHistoryTimeline history={history} />
+          <div className="rf-dashboard-card">
+            <div className="rf-dashboard-card-body">
+              <div className="rf-dashboard-heading">Historia zlecenia</div>
+              <OrderHistoryTimeline history={history} />
+            </div>
           </div>
         </div>
       </PageFrame>
@@ -322,82 +354,90 @@ export default function ClientDashboard() {
   }
 
   return (
-    <PageFrame>
-      <div className="dashboard-card" style={{ backgroundColor: '#fff', borderRadius: '24px', padding: '40px', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', flexWrap: 'wrap', marginBottom: '28px' }}>
-          <div>
-            <h1 style={{ fontSize: '2rem', marginBottom: '10px', color: '#111827' }}>Twoje zlecenia</h1>
-            <p style={{ color: '#6b7280', lineHeight: '1.7', maxWidth: '58ch' }}>
-              {user ? `${user.first_name || ''} ${user.last_name || ''}, tutaj widzisz wszystkie swoje naprawy po zalogowaniu.`.trim() : 'Tutaj znajdziesz historie swoich napraw.'}
-            </p>
+    <PageFrame user={user} onLogout={handleLogout} lookupMode={hasLookupParams}>
+      <div className="rf-dashboard-section">
+        <div className="rf-dashboard-statgrid">
+          <div className="rf-dashboard-stat">
+            <label>Wszystkie zlecenia</label>
+            <strong>{orders.length}</strong>
           </div>
-          <div style={{ padding: '16px 18px', borderRadius: '18px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', minWidth: '220px' }}>
-            <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Konto klienta</div>
-            <div style={{ fontWeight: '700', color: '#111827' }}>{user?.email || 'Brak adresu e-mail'}</div>
+          <div className="rf-dashboard-stat">
+            <label>Aktywne naprawy</label>
+            <strong>{activeOrdersCount}</strong>
+          </div>
+          <div className="rf-dashboard-stat">
+            <label>Gotowe lub zakończone</label>
+            <strong>{readyOrdersCount}</strong>
           </div>
         </div>
 
-        {orders.length === 0 ? (
-          <div style={{ padding: '24px', borderRadius: '18px', backgroundColor: '#f9fafb', color: '#4b5563' }}>
-            Nie znaleziono zadnych zlecen przypisanych do tego konta.
+        <div className="rf-dashboard-card">
+          <div className="rf-dashboard-card-body rf-dashboard-stack">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
+              <div>
+                <h2 className="rf-dashboard-heading" style={{ marginBottom: '8px' }}>Twoje zlecenia</h2>
+                <p style={{ color: '#475569', lineHeight: '1.7', maxWidth: '62ch' }}>
+                  {user
+                    ? `${user.first_name || ''} ${user.last_name || ''}, tutaj widzisz wszystkie swoje naprawy po zalogowaniu.`.trim()
+                    : 'Tutaj znajdziesz historię swoich napraw.'}
+                </p>
+              </div>
+              <div className="rf-dashboard-note" style={{ minWidth: '220px' }}>
+                <h3>Konto klienta</h3>
+                <p>{user?.email || 'Brak adresu e-mail'}</p>
+              </div>
+            </div>
+
+            {orders.length === 0 ? (
+              <div className="rf-dashboard-empty" style={{ backgroundColor: '#f8fafc', borderRadius: '14px', border: '1px solid #e5ebf2' }}>
+                Nie znaleziono żadnych zleceń przypisanych do tego konta.
+              </div>
+            ) : (
+              <div className="rf-dashboard-order-grid">
+                {orders.map((order) => {
+                  const statusInfo = getStatusInfo(order.status);
+                  const StatusIcon = statusInfo.icon;
+                  const history = Array.isArray(order.history) ? order.history : [];
+
+                  return (
+                    <article key={order.id || order.order_number} className="rf-dashboard-note">
+                      <div className="rf-dashboard-detail-grid">
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Numer zlecenia</div>
+                          <div style={{ fontWeight: '800', color: '#111827', fontSize: '1.05rem' }}>{order.order_number}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Sprzęt</div>
+                          <div style={{ fontWeight: '600', color: '#111827' }}>{order.device_model || 'Brak danych'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Status</div>
+                          <div className="rf-dashboard-pill" style={{ backgroundColor: statusInfo.background, color: statusInfo.color, display: 'inline-flex', gap: '8px' }}>
+                            <StatusIcon size={16} />
+                            <span>{statusInfo.label}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Przyjęto</div>
+                          <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.created_at)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Planowane zakończenie</div>
+                          <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.estimated_completion_date)}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid #e5ebf2' }}>
+                        <div className="rf-dashboard-heading" style={{ marginBottom: '12px' }}>Historia zmian</div>
+                        <OrderHistoryTimeline history={history} compact />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '18px' }}>
-            {orders.map((order) => {
-              const statusInfo = getStatusInfo(order.status);
-              const StatusIcon = statusInfo.icon;
-              const history = Array.isArray(order.history) ? order.history : [];
-
-              return (
-                <article
-                  key={order.order_number}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '20px',
-                    padding: '22px 24px',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                    gap: '16px',
-                    alignItems: 'start',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Numer zlecenia</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: '700', color: '#111827' }}>{order.order_number}</div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Sprzet</div>
-                    <div style={{ fontWeight: '600', color: '#111827' }}>{order.device_model}</div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Status</div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '999px', backgroundColor: statusInfo.background, color: statusInfo.color }}>
-                      <StatusIcon size={18} />
-                      <span style={{ fontWeight: '600' }}>{statusInfo.label}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Przyjeto</div>
-                    <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.created_at)}</div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '6px' }}>Planowane zakonczenie</div>
-                    <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.estimated_completion_date)}</div>
-                  </div>
-
-                  <div style={{ gridColumn: '1 / -1', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827', marginBottom: '14px' }}>Historia zmian</div>
-                    <OrderHistoryTimeline history={history} compact />
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+        </div>
       </div>
     </PageFrame>
   );

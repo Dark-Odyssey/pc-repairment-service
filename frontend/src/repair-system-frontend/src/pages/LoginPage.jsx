@@ -15,7 +15,7 @@ export default function LoginPage() {
     event.preventDefault();
 
     if (!email || !password) {
-      setLoginError('Wypelnij wszystkie pola.');
+      setLoginError('Wypełnij wszystkie pola.');
       return;
     }
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Nieprawidlowy adres e-mail lub haslo.');
+        throw new Error('Nieprawidłowy adres e-mail lub hasło.');
       }
 
       const data = await response.json();
@@ -44,7 +44,7 @@ export default function LoginPage() {
       });
 
       if (!userResponse.ok) {
-        throw new Error('Nie udalo sie pobrac danych uzytkownika.');
+        throw new Error('Nie udało się pobrać danych użytkownika.');
       }
 
       const userData = await userResponse.json();
@@ -60,7 +60,7 @@ export default function LoginPage() {
         navigate('/status');
       }
     } catch (error) {
-      setLoginError(error.message || 'Wystapil blad logowania.');
+      setLoginError(error.message || 'Wystąpił błąd logowania.');
       setLoginStatus('error');
     }
   };
@@ -70,15 +70,15 @@ export default function LoginPage() {
       <div className="container auth-container">
         <div className="auth-shell">
           <AuthShowcase
-            title="Zaloguj sie do centrum obslugi napraw"
-            intro="Zarzadzaj zleceniami z jednego przejrzystego miejsca."
+            title="Zaloguj się do centrum obsługi napraw"
+            intro="Zarządzaj zleceniami z jednego przejrzystego miejsca."
           />
 
           <section className="auth-form-panel">
             <div className="auth-form-card">
               <h2>Witamy ponownie</h2>
               <p className="auth-form-copy">
-                Uzyj adresu e-mail, aby przejsc do panelu serwisowego.
+                Użyj adresu e-mail, aby przejść do panelu serwisowego.
               </p>
 
               <form className="auth-form" onSubmit={handleLogin}>
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 )}
                 {loginStatus === 'success' && (
                   <div className="search-result" style={{ marginTop: 0, marginBottom: '14px', padding: '16px', color: 'green', borderColor: 'green' }}>
-                    Zalogowano pomyslnie. Trwa przekierowywanie...
+                    Zalogowano pomyślnie. Trwa przekierowywanie...
                   </div>
                 )}
 
@@ -106,11 +106,11 @@ export default function LoginPage() {
                 </label>
 
                 <label className="auth-field">
-                  <span>Haslo</span>
+                  <span>Hasło</span>
                   <input
                     type="password"
                     name="password"
-                    placeholder="Wpisz swoje haslo"
+                    placeholder="Wpisz swoje hasło"
                     autoComplete="current-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -120,11 +120,11 @@ export default function LoginPage() {
                 <div className="auth-form-row">
                   <label className="auth-checkbox">
                     <input type="checkbox" name="remember" />
-                    <span>Pamietaj mnie</span>
+                    <span>Pamiętaj mnie</span>
                   </label>
 
                   <Link to="/odzyskanie-hasla">
-                    Nie pamietasz hasla?
+                    Nie pamiętasz hasła?
                   </Link>
                 </div>
 
@@ -138,7 +138,7 @@ export default function LoginPage() {
               </div>
 
               <Link to="/" className="auth-secondary-btn">
-                Wroc do strony glownej
+                Wróć do strony głównej
               </Link>
             </div>
           </section>

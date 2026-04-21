@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>Ladowanie...</div>;
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>Ładowanie...</div>;
   }
 
   if (!user) {

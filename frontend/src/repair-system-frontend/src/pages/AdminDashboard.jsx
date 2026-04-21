@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { House, Package, Plus, Search, Edit, Trash2, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Users, Plus, Search, Edit, Trash2, LogOut, Package } from 'lucide-react';
-import logo from '../assets/logo.png';
+import DashboardFrame from '../components/DashboardFrame';
 import Modal from '../components/Modal';
 import { extractCollection } from '../utils/api';
 import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
 
 const statusMap = {
-  Created: { label: 'Utworzone', class: 'bg-gray-100 text-gray-800' },
-  Accepted: { label: 'Zaakceptowane', class: 'bg-blue-100 text-blue-800' },
-  'In diagnostics': { label: 'W diagnozie', class: 'bg-yellow-100 text-yellow-800' },
-  'Waiting for parts': { label: 'Oczekuje na czesci', class: 'bg-orange-100 text-orange-800' },
-  'In service': { label: 'W serwisie', class: 'bg-purple-100 text-purple-800' },
-  'Ready for collection': { label: 'Gotowe do odbioru', class: 'bg-green-100 text-green-800' },
-  Completed: { label: 'Zakonczone', class: 'bg-emerald-100 text-emerald-800' },
+  Created: { label: 'Utworzone', background: '#f3f4f6', color: '#374151' },
+  Accepted: { label: 'Zaakceptowane', background: '#dbeafe', color: '#1d4ed8' },
+  'In diagnostics': { label: 'W diagnozie', background: '#fef3c7', color: '#b45309' },
+  'Waiting for parts': { label: 'Oczekuje na części', background: '#ffedd5', color: '#c2410c' },
+  'In service': { label: 'W serwisie', background: '#ede9fe', color: '#6d28d9' },
+  'Ready for collection': { label: 'Gotowe do odbioru', background: '#d1fae5', color: '#047857' },
+  Completed: { label: 'Zakończone', background: '#d1fae5', color: '#065f46' },
 };
 
 const emptyEditOrderForm = {
@@ -27,6 +27,54 @@ const emptyEditUserForm = {
   last_name: '',
   role: 'Worker',
   is_active: true,
+};
+
+const fieldStyle = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: '10px',
+  border: '1px solid #d1d5db',
+  backgroundColor: '#fff',
+};
+
+const readOnlyStyle = {
+  ...fieldStyle,
+  borderColor: '#e5e7eb',
+  backgroundColor: '#f9fafb',
+  color: '#6b7280',
+};
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '8px',
+  fontWeight: '600',
+  color: '#111827',
+};
+
+const detailCardStyle = {
+  padding: '16px',
+  borderRadius: '14px',
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e5ebf2',
+};
+
+const secondaryButtonStyle = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: '1px solid #d1d5db',
+  background: '#fff',
+  cursor: 'pointer',
+  fontWeight: '600',
+};
+
+const primaryButtonStyle = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: 'none',
+  background: '#121b2d',
+  color: '#fff',
+  cursor: 'pointer',
+  fontWeight: '700',
 };
 
 function formatDate(value, withTime = false) {
@@ -59,6 +107,16 @@ function getStatusLabel(status) {
   return statusMap[status]?.label || status || 'Brak statusu';
 }
 
+function getStatusStyle(status) {
+  return (
+    statusMap[status] || {
+      label: status || 'Brak statusu',
+      background: '#f3f4f6',
+      color: '#475569',
+    }
+  );
+}
+
 function getHistoryLines(entry) {
   const lines = [];
 
@@ -87,13 +145,13 @@ function getPersonDisplayName(person) {
   }
 
   const fullName = `${person.first_name || ''} ${person.last_name || ''}`.trim();
-  return fullName || 'Brak danych';
+  return fullName || person.email || 'Brak danych';
 }
 
 export default function AdminDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('orders');
-
+  const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [deviceTypes, setDeviceTypes] = useState([]);
@@ -101,6 +159,7 @@ export default function AdminDashboard() {
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const [userForm, setUserForm] = useState({ first_name: '', last_name: '', email: '', phone_number: '', role: 'Worker' });
   const [orderForm, setOrderForm] = useState({ client_id: '', device_type_id: '', device_model: '', issue_description: '' });
@@ -112,8 +171,10 @@ export default function AdminDashboard() {
   const [editOrderLoading, setEditOrderLoading] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editUserForm, setEditUserForm] = useState(emptyEditUserForm);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   useEffect(() => {
+    setSearchQuery('');
     fetchDeviceTypes();
     fetchUsers();
 
@@ -165,6 +226,11 @@ export default function AdminDashboard() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    if (isCreatingUser) {
+      return;
+    }
+
+    setIsCreatingUser(true);
     try {
       const response = await authFetch('/api/v1/admin/users', {
         method: 'POST',
@@ -173,17 +239,20 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify(userForm),
       });
+
       if (response.ok) {
         setIsUserModalOpen(false);
         setUserForm({ first_name: '', last_name: '', email: '', phone_number: '', role: 'Worker' });
         fetchUsers();
       } else {
         const errData = await response.json();
-        alert(`Blad: ${JSON.stringify(errData)}`);
+        alert(`Błąd: ${JSON.stringify(errData)}`);
       }
     } catch (error) {
       console.error(error);
-      alert('Blad podczas tworzenia uzytkownika');
+      alert('Błąd podczas tworzenia użytkownika');
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
@@ -200,19 +269,20 @@ export default function AdminDashboard() {
           },
           body: JSON.stringify(newDeviceTypeForm),
         });
+
         if (dtResponse.ok) {
           const dtData = await dtResponse.json();
           finalDeviceTypeId = dtData.id;
           fetchDeviceTypes();
         } else {
           const errData = await dtResponse.json();
-          alert(`Blad typu urzadzenia: ${JSON.stringify(errData)}`);
+          alert(`Błąd typu urządzenia: ${JSON.stringify(errData)}`);
           return;
         }
       }
 
       if (!finalDeviceTypeId) {
-        alert('Wybierz lub dodaj typ urzadzenia!');
+        alert('Wybierz lub dodaj typ urządzenia.');
         return;
       }
 
@@ -237,16 +307,16 @@ export default function AdminDashboard() {
         fetchOrders();
       } else {
         const errData = await response.json();
-        alert(`Blad: ${JSON.stringify(errData)}`);
+        alert(`Błąd: ${JSON.stringify(errData)}`);
       }
     } catch (error) {
       console.error(error);
-      alert('Blad podczas tworzenia zlecenia');
+      alert('Błąd podczas tworzenia zlecenia');
     }
   };
 
   const handleDeleteOrder = async (id) => {
-    if (!window.confirm('Czy na pewno chcesz usunac to zlecenie?')) {
+    if (!window.confirm('Czy na pewno chcesz usunąć to zlecenie?')) {
       return;
     }
 
@@ -254,10 +324,11 @@ export default function AdminDashboard() {
       const response = await authFetch(`/api/v1/repair-order/${id}`, {
         method: 'DELETE',
       });
+
       if (response.ok || response.status === 204) {
         fetchOrders();
       } else {
-        alert('Blad podczas usuwania');
+        alert('Błąd podczas usuwania zlecenia.');
       }
     } catch (error) {
       console.error(error);
@@ -288,7 +359,7 @@ export default function AdminDashboard() {
       });
     } catch (error) {
       console.error('Failed to load order details:', error);
-      alert('Nie udalo sie pobrac historii tego zlecenia.');
+      alert('Nie udało się pobrać historii tego zlecenia.');
     } finally {
       setEditOrderLoading(false);
     }
@@ -328,12 +399,12 @@ export default function AdminDashboard() {
         closeEditOrderModal();
         fetchOrders();
       } else {
-        const err = await response.json();
-        alert(`Blad: ${JSON.stringify(err)}`);
+        const errData = await response.json();
+        alert(`Błąd: ${JSON.stringify(errData)}`);
       }
     } catch (error) {
       console.error(error);
-      alert('Nie udalo sie zapisac zmian zlecenia.');
+      alert('Nie udało się zapisać zmian zlecenia.');
     }
   };
 
@@ -372,209 +443,296 @@ export default function AdminDashboard() {
         fetchUsers();
       } else {
         const errData = await response.json();
-        alert(`Blad: ${JSON.stringify(errData)}`);
+        alert(`Błąd: ${JSON.stringify(errData)}`);
       }
     } catch (error) {
       console.error(error);
-      alert('Nie udalo sie zapisac zmian uzytkownika.');
+      alert('Nie udało się zapisać zmian użytkownika.');
     }
   };
 
-  const clientOptions = usersList.filter((u) => u.role === 'User');
-  const staffUsers = usersList.filter((u) => u.role !== 'User');
+  const handleDeleteUser = async (selectedUser) => {
+    if (!selectedUser || deletingUserId) {
+      return;
+    }
+
+    const displayName = `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() || selectedUser.email;
+    if (!window.confirm(`Czy na pewno chcesz usunąć użytkownika ${displayName}?`)) {
+      return;
+    }
+
+    setDeletingUserId(selectedUser.id);
+    try {
+      const response = await authFetch(`/api/v1/admin/users/${selectedUser.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok || response.status === 204) {
+        if (editingUser?.id === selectedUser.id) {
+          closeEditUserModal();
+        }
+        fetchUsers();
+      } else {
+        const errData = await response.json().catch(() => null);
+        alert(`Błąd usuwania użytkownika${errData ? `: ${JSON.stringify(errData)}` : '.'}`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Nie udało się usunąć użytkownika.');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const clientOptions = useMemo(() => usersList.filter((listedUser) => listedUser.role === 'User'), [usersList]);
+  const staffUsers = useMemo(() => usersList.filter((listedUser) => listedUser.role !== 'User'), [usersList]);
   const history = Array.isArray(editingOrder?.history) ? editingOrder.history : [];
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredOrders = useMemo(() => {
+    if (!normalizedQuery) {
+      return orders;
+    }
+
+    return orders.filter((order) => {
+      const clientName = order.client ? `${order.client.first_name || ''} ${order.client.last_name || ''}`.trim() : '';
+      return [order.order_number, order.device_model, clientName, getStatusLabel(order.status)]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+    });
+  }, [normalizedQuery, orders]);
+
+  const filteredUsers = useMemo(() => {
+    if (!normalizedQuery) {
+      return staffUsers;
+    }
+
+    return staffUsers.filter((listedUser) =>
+      [`${listedUser.first_name || ''} ${listedUser.last_name || ''}`.trim(), listedUser.email, listedUser.role]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    );
+  }, [normalizedQuery, staffUsers]);
+
+  const navItems = [
+    { key: 'home', label: 'Strona główna', icon: House, to: '/' },
+    { key: 'orders', label: 'Wszystkie zlecenia', icon: Package, active: activeTab === 'orders', onClick: () => setActiveTab('orders') },
+    { key: 'users', label: 'Konta pracowników', icon: Users, active: activeTab === 'users', onClick: () => setActiveTab('users') },
+  ];
+
+  const headerTitle = activeTab === 'orders' ? 'Zarządzanie wszystkimi zleceniami' : 'Zarządzanie kontami pracowników';
+
+  const headerActions = (
+    <button
+      type="button"
+      className="rf-dashboard-action rf-dashboard-action--primary"
+      onClick={() => (activeTab === 'orders' ? setIsOrderModalOpen(true) : setIsUserModalOpen(true))}
+    >
+      <Plus size={18} />
+      <span>{activeTab === 'orders' ? 'Nowe zlecenie' : 'Dodaj pracownika'}</span>
+    </button>
+  );
+
   return (
-    <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <aside style={{ width: '260px', backgroundColor: '#111827', color: '#fff', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src={logo} alt="Logo" style={{ height: '32px', filter: 'brightness(0) invert(1)' }} />
-          <span style={{ fontWeight: '700', fontSize: '1.2rem', color: '#fff' }}>RepairFlow Admin</span>
-        </div>
-
-        <nav style={{ padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button
-            onClick={() => setActiveTab('orders')}
-            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', backgroundColor: activeTab === 'orders' ? '#1f2937' : 'transparent', color: activeTab === 'orders' ? '#fff' : '#9ca3af', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', textAlign: 'left', width: '100%' }}
-          >
-            <Package size={20} />
-            Wszystkie zlecenia
-          </button>
-
-          <button
-            onClick={() => setActiveTab('users')}
-            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', backgroundColor: activeTab === 'users' ? '#1f2937' : 'transparent', color: activeTab === 'users' ? '#fff' : '#9ca3af', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', textAlign: 'left', width: '100%' }}
-          >
-            <Users size={20} />
-            Konta pracownikow
-          </button>
-        </nav>
-
-        <div style={{ padding: '24px 16px', borderTop: '1px solid #1f2937' }}>
-          <div style={{ marginBottom: '16px', px: '16px' }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#fff' }}>{user?.first_name} {user?.last_name}</div>
-            <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{user?.email}</div>
-          </div>
-          <button onClick={logout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#ef4444', backgroundColor: 'transparent', border: 'none', borderRadius: '12px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
-            <LogOut size={20} />
-            Wyloguj sie
-          </button>
-        </div>
-      </aside>
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ backgroundColor: '#fff', borderBottom: '1px solid #e5e7eb', padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', margin: 0 }}>
-            {activeTab === 'orders' ? 'Zarzadzanie wszystkimi zleceniami' : 'Zarzadzanie kontami uzytkownikow'}
-          </h1>
-          <button
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '44px', padding: '0 20px', backgroundColor: '#111827', borderColor: '#111827' }}
-            onClick={() => activeTab === 'orders' ? setIsOrderModalOpen(true) : setIsUserModalOpen(true)}
-          >
-            <Plus size={18} />
-            {activeTab === 'orders' ? 'Nowe zlecenie' : 'Dodaj pracownika'}
-          </button>
-        </header>
-
-        <div style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
-          <div style={{ backgroundColor: '#fff', borderRadius: '16px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ position: 'relative', width: '300px' }}>
-                <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                <input
-                  type="text"
-                  placeholder={activeTab === 'orders' ? 'Szukaj zlecenia...' : 'Szukaj pracownika...'}
-                  style={{ width: '100%', padding: '10px 16px 10px 44px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }}
-                />
-              </div>
+    <>
+      <DashboardFrame
+        badge="Admin"
+        badgeTone="admin"
+        subtitle="centrum zarządzania serwisem"
+        navItems={navItems}
+        user={user}
+        onLogout={logout}
+        headerTitle={headerTitle}
+        headerActions={headerActions}
+      >
+        <div className="rf-dashboard-card">
+          <div className="rf-dashboard-toolbar">
+            <div className="rf-dashboard-search">
+              <Search size={18} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={activeTab === 'orders' ? 'Szukaj zlecenia...' : 'Szukaj pracownika...'}
+              />
             </div>
-
-            {activeTab === 'orders' ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Nr zlecenia</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Klient</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Sprzet</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Status</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Utworzyl</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Aktualizowal</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Termin</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem', textAlign: 'right' }}>Akcje</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Ladowanie zlecen...</td></tr>
-                  ) : orders.length === 0 ? (
-                    <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak zlecen w systemie.</td></tr>
-                  ) : (
-                    orders.map((order) => (
-                      <tr key={order.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '16px 24px', fontWeight: '500', color: '#111827' }}>{order.order_number}</td>
-                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>
-                          {order.client ? `${order.client.first_name} ${order.client.last_name}` : 'Brak klienta'}
-                        </td>
-                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{order.device_model}</td>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: '600', ...(statusMap[order.status] ? {} : { backgroundColor: '#f3f4f6', color: '#4b5563' }) }} className={statusMap[order.status]?.class || ''}>
-                            {statusMap[order.status]?.label || order.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_created)}</td>
-                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_updated)}</td>
-                        <td style={{ padding: '16px 24px', color: '#6b7280' }}>{formatDate(order.estimated_completion_date)}</td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => openEditOrderModal(order)}
-                            style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                          >
-                            <Edit size={16} /> Szczegoly
-                          </button>
-                          <button
-                            onClick={() => handleDeleteOrder(order.id)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}
-                          >
-                            <Trash2 size={16} /> Usun
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Imie i nazwisko</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Email</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Rola</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Status</th>
-                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem', textAlign: 'right' }}>Akcje</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staffUsers.length === 0 ? (
-                    <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak innych uzytkownikow.</td></tr>
-                  ) : (
-                    staffUsers.map((u) => (
-                      <tr key={u.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '16px 24px', fontWeight: '500', color: '#111827' }}>{u.first_name} {u.last_name}</td>
-                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{u.email}</td>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: '600', backgroundColor: u.role === 'Admin' ? '#fce7f3' : '#e0e7ff', color: u.role === 'Admin' ? '#be185d' : '#4338ca' }}>
-                            {u.role === 'Admin' ? 'Administrator' : u.role === 'Worker' ? 'Pracownik' : 'Klient'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px 24px' }}>
-                          {u.is_active ? <span style={{ color: '#059669', fontSize: '0.9rem' }}>Aktywny</span> : <span style={{ color: '#dc2626', fontSize: '0.9rem' }}>Zablokowany</span>}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          <button onClick={() => openEditUserModal(u)} style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <Edit size={16} /> Edytuj
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
           </div>
-        </div>
-      </main>
 
-      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title="Dodaj uzytkownika">
+          {activeTab === 'orders' ? (
+            <table className="rf-dashboard-table">
+              <thead>
+                <tr>
+                  <th>Numer zlecenia</th>
+                  <th>Klient</th>
+                  <th>Sprzęt</th>
+                  <th>Status</th>
+                  <th>Utworzył</th>
+                  <th>Aktualizował</th>
+                  <th>Termin</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="rf-dashboard-empty">Ładowanie zleceń...</td>
+                  </tr>
+                ) : filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="rf-dashboard-empty">Brak zleceń pasujących do wyszukiwania.</td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((order) => {
+                    const statusInfo = getStatusStyle(order.status);
+                    return (
+                      <tr key={order.id}>
+                        <td style={{ fontWeight: '700', color: '#111827' }}>{order.order_number}</td>
+                        <td>{order.client ? `${order.client.first_name} ${order.client.last_name}` : 'Brak klienta'}</td>
+                        <td>{order.device_model || 'Brak danych'}</td>
+                        <td>
+                          <span className="rf-dashboard-pill" style={{ backgroundColor: statusInfo.background, color: statusInfo.color }}>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td>{getPersonDisplayName(order.worker_created)}</td>
+                        <td>{getPersonDisplayName(order.worker_updated)}</td>
+                        <td>{formatDate(order.estimated_completion_date)}</td>
+                        <td>
+                          <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              onClick={() => openEditOrderModal(order)}
+                              style={{ background: 'none', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}
+                            >
+                              <Edit size={16} />
+                              Szczegóły
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOrder(order.id)}
+                              style={{ background: 'none', color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}
+                            >
+                              <Trash2 size={16} />
+                              Usuń
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <table className="rf-dashboard-table">
+              <thead>
+                <tr>
+                  <th>Imię i nazwisko</th>
+                  <th>E-mail</th>
+                  <th>Rola</th>
+                  <th>Status</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="rf-dashboard-empty">Brak pracowników pasujących do wyszukiwania.</td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((listedUser) => (
+                    <tr key={listedUser.id}>
+                      <td style={{ fontWeight: '700', color: '#111827' }}>{listedUser.first_name} {listedUser.last_name}</td>
+                      <td>{listedUser.email}</td>
+                      <td>
+                        <span
+                          className="rf-dashboard-pill"
+                          style={{
+                            backgroundColor: listedUser.role === 'Admin' ? '#fce7f3' : '#e0e7ff',
+                            color: listedUser.role === 'Admin' ? '#be185d' : '#4338ca',
+                          }}
+                        >
+                          {listedUser.role === 'Admin' ? 'Administrator' : listedUser.role === 'Worker' ? 'Pracownik' : 'Klient'}
+                        </span>
+                      </td>
+                      <td style={{ color: listedUser.is_active ? '#059669' : '#dc2626', fontWeight: '600' }}>
+                        {listedUser.is_active ? 'Aktywny' : 'Zablokowany'}
+                      </td>
+                      <td>
+                        <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => openEditUserModal(listedUser)}
+                            style={{ background: 'none', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}
+                          >
+                            <Edit size={16} />
+                            Edytuj
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingUserId === listedUser.id}
+                            onClick={() => handleDeleteUser(listedUser)}
+                            style={{
+                              background: 'none',
+                              color: '#ef4444',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontWeight: '600',
+                              opacity: deletingUserId === listedUser.id ? 0.65 : 1,
+                              cursor: deletingUserId === listedUser.id ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            <Trash2 size={16} />
+                            {deletingUserId === listedUser.id ? 'Usuwanie...' : 'Usuń'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </DashboardFrame>
+
+      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title="Dodaj pracownika">
         <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Imie</label>
-            <input required type="text" value={userForm.first_name} onChange={(e) => setUserForm({ ...userForm, first_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Imię</label>
+            <input required type="text" value={userForm.first_name} onChange={(e) => setUserForm({ ...userForm, first_name: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Nazwisko</label>
-            <input required type="text" value={userForm.last_name} onChange={(e) => setUserForm({ ...userForm, last_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Nazwisko</label>
+            <input required type="text" value={userForm.last_name} onChange={(e) => setUserForm({ ...userForm, last_name: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
-            <input required type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>E-mail</label>
+            <input required type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Telefon</label>
-            <input required type="text" value={userForm.phone_number} onChange={(e) => setUserForm({ ...userForm, phone_number: e.target.value })} placeholder="+48 123 456 789" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Telefon</label>
+            <input required type="text" value={userForm.phone_number} onChange={(e) => setUserForm({ ...userForm, phone_number: e.target.value })} placeholder="+48 123 456 789" style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Rola</label>
-            <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+            <label style={labelStyle}>Rola</label>
+            <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value })} style={fieldStyle}>
               <option value="Worker">Pracownik</option>
               <option value="Admin">Administrator</option>
               <option value="User">Klient</option>
             </select>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-            <button type="button" onClick={() => setIsUserModalOpen(false)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
-            <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+            <button type="button" onClick={() => setIsUserModalOpen(false)} style={secondaryButtonStyle}>Anuluj</button>
+            <button
+              type="submit"
+              disabled={isCreatingUser}
+              style={{ ...primaryButtonStyle, opacity: isCreatingUser ? 0.7 : 1, cursor: isCreatingUser ? 'not-allowed' : 'pointer' }}
+            >
+              {isCreatingUser ? 'Tworzenie...' : 'Zapisz'}
+            </button>
           </div>
         </form>
       </Modal>
@@ -582,97 +740,124 @@ export default function AdminDashboard() {
       <Modal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} title="Nowe zlecenie">
         <form onSubmit={handleCreateOrder} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Klient</label>
-            <select required value={orderForm.client_id} onChange={(e) => setOrderForm({ ...orderForm, client_id: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+            <label style={labelStyle}>Klient</label>
+            <select required value={orderForm.client_id} onChange={(e) => setOrderForm({ ...orderForm, client_id: e.target.value })} style={fieldStyle}>
               <option value="">Wybierz klienta...</option>
-              {clientOptions.map((u) => (
-                <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.email})</option>
+              {clientOptions.map((listedUser) => (
+                <option key={listedUser.id} value={listedUser.id}>
+                  {listedUser.first_name} {listedUser.last_name} ({listedUser.email})
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Typ urzadzenia</label>
+            <label style={labelStyle}>Typ urządzenia</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               {!showNewDeviceType ? (
                 <>
-                  <select required value={orderForm.device_type_id} onChange={(e) => setOrderForm({ ...orderForm, device_type_id: e.target.value })} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+                  <select required value={orderForm.device_type_id} onChange={(e) => setOrderForm({ ...orderForm, device_type_id: e.target.value })} style={{ ...fieldStyle, flex: 1 }}>
                     <option value="">Wybierz typ...</option>
-                    {deviceTypes.map((dt) => (
-                      <option key={dt.id} value={dt.id}>{dt.device_type}</option>
+                    {deviceTypes.map((deviceType) => (
+                      <option key={deviceType.id} value={deviceType.id}>{deviceType.device_type}</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => { setShowNewDeviceType(true); setOrderForm({ ...orderForm, device_type_id: '' }); }} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#f3f4f6', cursor: 'pointer' }}>+</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNewDeviceType(true);
+                      setOrderForm({ ...orderForm, device_type_id: '' });
+                    }}
+                    style={secondaryButtonStyle}
+                  >
+                    +
+                  </button>
                 </>
               ) : (
                 <>
-                  <input required type="text" placeholder="Nazwa nowego typu..." value={newDeviceTypeForm.device_type} onChange={(e) => setNewDeviceTypeForm({ ...newDeviceTypeForm, device_type: e.target.value })} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
-                  <button type="button" onClick={() => { setShowNewDeviceType(false); setNewDeviceTypeForm({ device_type: '', description: '' }); }} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#f3f4f6', cursor: 'pointer' }}>Wroc</button>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Nazwa nowego typu..."
+                    value={newDeviceTypeForm.device_type}
+                    onChange={(e) => setNewDeviceTypeForm({ ...newDeviceTypeForm, device_type: e.target.value })}
+                    style={{ ...fieldStyle, flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNewDeviceType(false);
+                      setNewDeviceTypeForm({ device_type: '', description: '' });
+                    }}
+                    style={secondaryButtonStyle}
+                  >
+                    Wróć
+                  </button>
                 </>
               )}
             </div>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Model urzadzenia</label>
-            <input required type="text" value={orderForm.device_model} onChange={(e) => setOrderForm({ ...orderForm, device_model: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Model urządzenia</label>
+            <input required type="text" value={orderForm.device_model} onChange={(e) => setOrderForm({ ...orderForm, device_model: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Opis usterki</label>
-            <textarea required value={orderForm.issue_description} onChange={(e) => setOrderForm({ ...orderForm, issue_description: e.target.value })} rows="3" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Opis usterki</label>
+            <textarea required value={orderForm.issue_description} onChange={(e) => setOrderForm({ ...orderForm, issue_description: e.target.value })} rows="4" style={fieldStyle} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-            <button type="button" onClick={() => setIsOrderModalOpen(false)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
-            <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz zlecenie</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+            <button type="button" onClick={() => setIsOrderModalOpen(false)} style={secondaryButtonStyle}>Anuluj</button>
+            <button type="submit" style={primaryButtonStyle}>Zapisz zlecenie</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!editingOrder} onClose={closeEditOrderModal} title="Historia i edycja zlecenia" maxWidth="760px">
+      <Modal isOpen={Boolean(editingOrder)} onClose={closeEditOrderModal} title="Historia i edycja zlecenia" maxWidth="760px">
         <form onSubmit={handleEditOrderSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Numer zlecenia</div>
-              <div style={{ fontWeight: '700', color: '#111827' }}>{editingOrder?.order_number || '-'}</div>
+          <div className="rf-dashboard-statgrid">
+            <div className="rf-dashboard-stat">
+              <label>Numer zlecenia</label>
+              <strong>{editingOrder?.order_number || '-'}</strong>
             </div>
-            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Przyjeto</div>
-              <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(editingOrder?.created_at)}</div>
+            <div className="rf-dashboard-stat">
+              <label>Przyjęto</label>
+              <strong>{formatDate(editingOrder?.created_at)}</strong>
             </div>
-            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Utworzyl</div>
-              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_created)}</div>
+            <div className="rf-dashboard-stat">
+              <label>Utworzył</label>
+              <strong>{getPersonDisplayName(editingOrder?.worker_created)}</strong>
             </div>
-            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Aktualizowal</div>
-              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_updated)}</div>
+            <div className="rf-dashboard-stat">
+              <label>Aktualizował</label>
+              <strong>{getPersonDisplayName(editingOrder?.worker_updated)}</strong>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Status</label>
-              <select required value={editOrderForm.status} onChange={(e) => setEditOrderForm({ ...editOrderForm, status: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+              <label style={labelStyle}>Status</label>
+              <select required value={editOrderForm.status} onChange={(e) => setEditOrderForm({ ...editOrderForm, status: e.target.value })} style={fieldStyle}>
                 {Object.entries(statusMap).map(([key, value]) => (
                   <option key={key} value={key}>{value.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Estimated date</label>
-              <input type="date" value={editOrderForm.estimated_completion_date} onChange={(e) => setEditOrderForm({ ...editOrderForm, estimated_completion_date: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+              <label style={labelStyle}>Szacowany termin</label>
+              <input type="date" value={editOrderForm.estimated_completion_date} onChange={(e) => setEditOrderForm({ ...editOrderForm, estimated_completion_date: e.target.value })} style={fieldStyle} />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Notatka serwisowa</label>
-            <textarea value={editOrderForm.service_note} onChange={(e) => setEditOrderForm({ ...editOrderForm, service_note: e.target.value })} rows="4" placeholder="Dodaj notatke dla zlecenia..." style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Notatka serwisowa</label>
+            <textarea value={editOrderForm.service_note} onChange={(e) => setEditOrderForm({ ...editOrderForm, service_note: e.target.value })} rows="4" placeholder="Dodaj notatkę dla zlecenia..." style={fieldStyle} />
           </div>
 
           <div>
-            <div style={{ fontWeight: '600', color: '#111827', marginBottom: '12px' }}>Historia zmian</div>
+            <div style={{ fontWeight: '700', color: '#111827', marginBottom: '12px' }}>Historia zmian</div>
             {editOrderLoading ? (
-              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', color: '#6b7280' }}>Ladowanie historii...</div>
+              <div className="rf-dashboard-empty" style={detailCardStyle}>Ładowanie historii...</div>
             ) : history.length === 0 ? (
-              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', color: '#6b7280' }}>Brak zapisanej historii dla tego zlecenia.</div>
+              <div className="rf-dashboard-empty" style={detailCardStyle}>Brak zapisanej historii dla tego zlecenia.</div>
             ) : (
               <div style={{ position: 'relative', borderLeft: '2px solid #e5e7eb', paddingLeft: '20px', marginLeft: '8px' }}>
                 {history.map((entry, index) => (
@@ -689,50 +874,50 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button type="button" onClick={closeEditOrderModal} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
-            <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz zmiany</button>
+            <button type="button" onClick={closeEditOrderModal} style={secondaryButtonStyle}>Anuluj</button>
+            <button type="submit" style={primaryButtonStyle}>Zapisz zmiany</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!editingUser} onClose={closeEditUserModal} title="Edytuj pracownika">
+      <Modal isOpen={Boolean(editingUser)} onClose={closeEditUserModal} title="Edytuj pracownika">
         <form onSubmit={handleEditUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Imie</label>
-            <input required type="text" value={editUserForm.first_name} onChange={(e) => setEditUserForm({ ...editUserForm, first_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Imię</label>
+            <input required type="text" value={editUserForm.first_name} onChange={(e) => setEditUserForm({ ...editUserForm, first_name: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Nazwisko</label>
-            <input required type="text" value={editUserForm.last_name} onChange={(e) => setEditUserForm({ ...editUserForm, last_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+            <label style={labelStyle}>Nazwisko</label>
+            <input required type="text" value={editUserForm.last_name} onChange={(e) => setEditUserForm({ ...editUserForm, last_name: e.target.value })} style={fieldStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
-            <input type="email" value={editingUser?.email || ''} readOnly style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280' }} />
+            <label style={labelStyle}>E-mail</label>
+            <input type="email" value={editingUser?.email || ''} readOnly style={readOnlyStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Telefon</label>
-            <input type="text" value={editingUser?.phone_number || ''} readOnly style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280' }} />
+            <label style={labelStyle}>Telefon</label>
+            <input type="text" value={editingUser?.phone_number || ''} readOnly style={readOnlyStyle} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Rola</label>
-            <select value={editUserForm.role} onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+            <label style={labelStyle}>Rola</label>
+            <select value={editUserForm.role} onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })} style={fieldStyle}>
               <option value="Worker">Pracownik</option>
               <option value="Admin">Administrator</option>
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Status</label>
-            <select value={editUserForm.is_active ? 'active' : 'blocked'} onChange={(e) => setEditUserForm({ ...editUserForm, is_active: e.target.value === 'active' })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+            <label style={labelStyle}>Status</label>
+            <select value={editUserForm.is_active ? 'active' : 'blocked'} onChange={(e) => setEditUserForm({ ...editUserForm, is_active: e.target.value === 'active' })} style={fieldStyle}>
               <option value="active">Aktywny</option>
               <option value="blocked">Zablokowany</option>
             </select>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
-            <button type="button" onClick={closeEditUserModal} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
-            <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+            <button type="button" onClick={closeEditUserModal} style={secondaryButtonStyle}>Anuluj</button>
+            <button type="submit" style={primaryButtonStyle}>Zapisz</button>
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 }
