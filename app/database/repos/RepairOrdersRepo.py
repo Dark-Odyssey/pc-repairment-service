@@ -76,7 +76,7 @@ class RepairOrdersRepo(BaseRepo):
             joinedload(RepairOrdersORM.client),
             joinedload(RepairOrdersORM.worker_created),
             joinedload(RepairOrdersORM.worker_updated),
-            joinedload(RepairOrdersORM.device_type),\
+            joinedload(RepairOrdersORM.device_type),
             selectinload(RepairOrdersORM.history)
         )
 
