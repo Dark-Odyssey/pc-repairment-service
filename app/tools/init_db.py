@@ -3,7 +3,7 @@ from database.models import UserORM, RepairOrdersORM, OrderStatusHistoryORM, Pas
 from security.encryption import Crypt
 from database.repos import UserRepo
 from sqlalchemy.exc import IntegrityError
-from schemas import UserCreateAdminDTO, UserCreateFullDTO
+from schemas import UserCreateFullDTO
 from tools.types import RoleEnum
 
 async def create_database():

@@ -22,7 +22,8 @@ async def login(user: UserLogin, response: Response, session: DataBase):
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     response.set_cookie(
         key=settings.CSRF_COOKIE_NAME,
@@ -30,7 +31,8 @@ async def login(user: UserLogin, response: Response, session: DataBase):
         httponly=False,
         secure=True,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     return {
         "token_type": "Bearer",
@@ -49,7 +51,8 @@ async def refresh(
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     response.set_cookie(
         key=settings.CSRF_COOKIE_NAME,
@@ -57,7 +60,8 @@ async def refresh(
         httponly=False,
         secure=True,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     return {
         "token_type": "Bearer",
