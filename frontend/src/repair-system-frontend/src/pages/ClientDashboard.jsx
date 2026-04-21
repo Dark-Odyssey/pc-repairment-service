@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle, Clock, Package } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
-import { extractCollection } from '../utils/api';
+import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
 
 const statusMap = {
   Created: {
@@ -190,7 +190,7 @@ export default function ClientDashboard() {
             throw new Error('Nie znaleziono zlecenia lub kod dostepu jest nieprawidlowy.');
           }
 
-          const data = await response.json();
+          const data = normalizeRepairOrder(await response.json());
           if (isMounted) {
             setOrderData(data);
           }
@@ -207,10 +207,10 @@ export default function ClientDashboard() {
           throw new Error('Nie udalo sie pobrac listy zlecen klienta.');
         }
 
-        const data = await response.json();
-        if (isMounted) {
-          setOrders(extractCollection(data));
-        }
+          const data = await response.json();
+          if (isMounted) {
+            setOrders(extractRepairOrders(data));
+          }
       } catch (err) {
         if (isMounted) {
           setError(err.message || 'Wystapil nieoczekiwany blad.');

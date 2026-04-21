@@ -5,6 +5,7 @@ import { Settings, LogOut, Package, Plus, Search, Edit } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Modal from '../components/Modal';
 import { extractCollection } from '../utils/api';
+import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
 
 const statusMap = {
   Created: { label: 'Utworzone', class: 'bg-gray-100 text-gray-800' },
@@ -74,6 +75,15 @@ function getHistoryLines(entry) {
   return lines.length > 0 ? lines : ['Zaktualizowano zlecenie'];
 }
 
+function getPersonDisplayName(person) {
+  if (!person) {
+    return 'Brak danych';
+  }
+
+  const fullName = `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  return fullName || 'Brak danych';
+}
+
 export default function WorkerDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -104,7 +114,7 @@ export default function WorkerDashboard() {
       const response = await authFetch('/api/v1/repair-order/');
       if (response.ok) {
         const data = await response.json();
-        setOrders(extractCollection(data));
+        setOrders(extractRepairOrders(data));
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -219,7 +229,7 @@ export default function WorkerDashboard() {
   };
 
   const openEditOrderModal = async (order) => {
-    setEditingOrder(order);
+    setEditingOrder(normalizeRepairOrder(order));
     setEditOrderForm({
       status: order.status || 'Created',
       estimated_completion_date: toDateInputValue(order.estimated_completion_date),
@@ -233,7 +243,7 @@ export default function WorkerDashboard() {
         throw new Error('Failed to fetch order details');
       }
 
-      const data = await response.json();
+      const data = normalizeRepairOrder(await response.json());
       setEditingOrder(data);
       setEditOrderForm({
         status: data.status || 'Created',
@@ -361,15 +371,17 @@ export default function WorkerDashboard() {
                   <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Klient</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Sprzet</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Status</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Utworzyl</th>
+                  <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Aktualizowal</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Termin</th>
                   <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem', textAlign: 'right' }}>Akcje</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Ladowanie zlecen...</td></tr>
+                  <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Ladowanie zlecen...</td></tr>
                 ) : orders.length === 0 ? (
-                  <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak zlecen w systemie.</td></tr>
+                  <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak zlecen w systemie.</td></tr>
                 ) : (
                   orders.map((order) => (
                     <tr key={order.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -383,6 +395,8 @@ export default function WorkerDashboard() {
                           {statusMap[order.status]?.label || order.status}
                         </span>
                       </td>
+                      <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_created)}</td>
+                      <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_updated)}</td>
                       <td style={{ padding: '16px 24px', color: '#6b7280' }}>{formatDate(order.estimated_completion_date)}</td>
                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                         <button
@@ -483,6 +497,14 @@ export default function WorkerDashboard() {
             <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
               <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Przyjeto</div>
               <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(editingOrder?.created_at)}</div>
+            </div>
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Utworzyl</div>
+              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_created)}</div>
+            </div>
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Aktualizowal</div>
+              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_updated)}</div>
             </div>
           </div>
 

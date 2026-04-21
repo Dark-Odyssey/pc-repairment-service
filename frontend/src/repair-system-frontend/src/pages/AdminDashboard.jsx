@@ -4,6 +4,7 @@ import { Users, Plus, Search, Edit, Trash2, LogOut, Package } from 'lucide-react
 import logo from '../assets/logo.png';
 import Modal from '../components/Modal';
 import { extractCollection } from '../utils/api';
+import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
 
 const statusMap = {
   Created: { label: 'Utworzone', class: 'bg-gray-100 text-gray-800' },
@@ -19,6 +20,13 @@ const emptyEditOrderForm = {
   status: 'Created',
   estimated_completion_date: '',
   service_note: '',
+};
+
+const emptyEditUserForm = {
+  first_name: '',
+  last_name: '',
+  role: 'Worker',
+  is_active: true,
 };
 
 function formatDate(value, withTime = false) {
@@ -73,6 +81,15 @@ function getHistoryLines(entry) {
   return lines.length > 0 ? lines : ['Zaktualizowano zlecenie'];
 }
 
+function getPersonDisplayName(person) {
+  if (!person) {
+    return 'Brak danych';
+  }
+
+  const fullName = `${person.first_name || ''} ${person.last_name || ''}`.trim();
+  return fullName || 'Brak danych';
+}
+
 export default function AdminDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('orders');
@@ -93,6 +110,8 @@ export default function AdminDashboard() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState(emptyEditOrderForm);
   const [editOrderLoading, setEditOrderLoading] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserForm, setEditUserForm] = useState(emptyEditUserForm);
 
   useEffect(() => {
     fetchDeviceTypes();
@@ -111,7 +130,7 @@ export default function AdminDashboard() {
       const response = await authFetch('/api/v1/repair-order/');
       if (response.ok) {
         const data = await response.json();
-        setOrders(extractCollection(data));
+        setOrders(extractRepairOrders(data));
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -246,7 +265,7 @@ export default function AdminDashboard() {
   };
 
   const openEditOrderModal = async (order) => {
-    setEditingOrder(order);
+    setEditingOrder(normalizeRepairOrder(order));
     setEditOrderForm({
       status: order.status || 'Created',
       estimated_completion_date: toDateInputValue(order.estimated_completion_date),
@@ -260,7 +279,7 @@ export default function AdminDashboard() {
         throw new Error('Failed to fetch order details');
       }
 
-      const data = await response.json();
+      const data = normalizeRepairOrder(await response.json());
       setEditingOrder(data);
       setEditOrderForm({
         status: data.status || 'Created',
@@ -318,7 +337,51 @@ export default function AdminDashboard() {
     }
   };
 
+  const openEditUserModal = (selectedUser) => {
+    setEditingUser(selectedUser);
+    setEditUserForm({
+      first_name: selectedUser.first_name || '',
+      last_name: selectedUser.last_name || '',
+      role: selectedUser.role || 'Worker',
+      is_active: Boolean(selectedUser.is_active),
+    });
+  };
+
+  const closeEditUserModal = () => {
+    setEditingUser(null);
+    setEditUserForm(emptyEditUserForm);
+  };
+
+  const handleEditUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) {
+      return;
+    }
+
+    try {
+      const response = await authFetch(`/api/v1/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editUserForm),
+      });
+
+      if (response.ok) {
+        closeEditUserModal();
+        fetchUsers();
+      } else {
+        const errData = await response.json();
+        alert(`Blad: ${JSON.stringify(errData)}`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Nie udalo sie zapisac zmian uzytkownika.');
+    }
+  };
+
   const clientOptions = usersList.filter((u) => u.role === 'User');
+  const staffUsers = usersList.filter((u) => u.role !== 'User');
   const history = Array.isArray(editingOrder?.history) ? editingOrder.history : [];
 
   return (
@@ -395,15 +458,17 @@ export default function AdminDashboard() {
                     <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Klient</th>
                     <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Sprzet</th>
                     <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Status</th>
+                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Utworzyl</th>
+                    <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Aktualizowal</th>
                     <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem' }}>Termin</th>
                     <th style={{ padding: '16px 24px', fontWeight: '600', color: '#4b5563', fontSize: '0.9rem', textAlign: 'right' }}>Akcje</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Ladowanie zlecen...</td></tr>
+                    <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Ladowanie zlecen...</td></tr>
                   ) : orders.length === 0 ? (
-                    <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak zlecen w systemie.</td></tr>
+                    <tr><td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak zlecen w systemie.</td></tr>
                   ) : (
                     orders.map((order) => (
                       <tr key={order.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -417,6 +482,8 @@ export default function AdminDashboard() {
                             {statusMap[order.status]?.label || order.status}
                           </span>
                         </td>
+                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_created)}</td>
+                        <td style={{ padding: '16px 24px', color: '#4b5563' }}>{getPersonDisplayName(order.worker_updated)}</td>
                         <td style={{ padding: '16px 24px', color: '#6b7280' }}>{formatDate(order.estimated_completion_date)}</td>
                         <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                           <button
@@ -449,10 +516,10 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usersList.length === 0 ? (
+                  {staffUsers.length === 0 ? (
                     <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Brak innych uzytkownikow.</td></tr>
                   ) : (
-                    usersList.map((u) => (
+                    staffUsers.map((u) => (
                       <tr key={u.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                         <td style={{ padding: '16px 24px', fontWeight: '500', color: '#111827' }}>{u.first_name} {u.last_name}</td>
                         <td style={{ padding: '16px 24px', color: '#4b5563' }}>{u.email}</td>
@@ -465,7 +532,7 @@ export default function AdminDashboard() {
                           {u.is_active ? <span style={{ color: '#059669', fontSize: '0.9rem' }}>Aktywny</span> : <span style={{ color: '#dc2626', fontSize: '0.9rem' }}>Zablokowany</span>}
                         </td>
                         <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          <button style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button onClick={() => openEditUserModal(u)} style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                             <Edit size={16} /> Edytuj
                           </button>
                         </td>
@@ -570,6 +637,14 @@ export default function AdminDashboard() {
               <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Przyjeto</div>
               <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(editingOrder?.created_at)}</div>
             </div>
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Utworzyl</div>
+              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_created)}</div>
+            </div>
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '6px' }}>Aktualizowal</div>
+              <div style={{ fontWeight: '700', color: '#111827' }}>{getPersonDisplayName(editingOrder?.worker_updated)}</div>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
@@ -616,6 +691,45 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button type="button" onClick={closeEditOrderModal} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
             <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz zmiany</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!editingUser} onClose={closeEditUserModal} title="Edytuj pracownika">
+        <form onSubmit={handleEditUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Imie</label>
+            <input required type="text" value={editUserForm.first_name} onChange={(e) => setEditUserForm({ ...editUserForm, first_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Nazwisko</label>
+            <input required type="text" value={editUserForm.last_name} onChange={(e) => setEditUserForm({ ...editUserForm, last_name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
+            <input type="email" value={editingUser?.email || ''} readOnly style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Telefon</label>
+            <input type="text" value={editingUser?.phone_number || ''} readOnly style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Rola</label>
+            <select value={editUserForm.role} onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+              <option value="Worker">Pracownik</option>
+              <option value="Admin">Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Status</label>
+            <select value={editUserForm.is_active ? 'active' : 'blocked'} onChange={(e) => setEditUserForm({ ...editUserForm, is_active: e.target.value === 'active' })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+              <option value="active">Aktywny</option>
+              <option value="blocked">Zablokowany</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+            <button type="button" onClick={closeEditUserModal} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Anuluj</button>
+            <button type="submit" style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}>Zapisz</button>
           </div>
         </form>
       </Modal>
