@@ -37,7 +37,6 @@ class RepairOrderUserDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     order_number: str
     estimated_completion_date: datetime | None
-    service_note: str | None
     status: StatusEnum
     created_at: datetime
     device_model: str
