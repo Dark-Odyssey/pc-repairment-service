@@ -148,6 +148,36 @@ function getPersonDisplayName(person) {
   return fullName || person.email || 'Brak danych';
 }
 
+function getUserStatusMeta(listedUser) {
+  if (listedUser?.is_active) {
+    return {
+      label: 'Aktywny',
+      color: '#059669',
+    };
+  }
+
+  const createdAt = listedUser?.created_at ? new Date(listedUser.created_at).getTime() : null;
+  const updatedAt = listedUser?.updated_at ? new Date(listedUser.updated_at).getTime() : null;
+  const isUnconfirmed =
+    createdAt !== null &&
+    updatedAt !== null &&
+    !Number.isNaN(createdAt) &&
+    !Number.isNaN(updatedAt) &&
+    createdAt === updatedAt;
+
+  if (isUnconfirmed) {
+    return {
+      label: 'Nie potwierdzony',
+      color: '#d97706',
+    };
+  }
+
+  return {
+    label: 'Zablokowany',
+    color: '#dc2626',
+  };
+}
+
 export default function AdminDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('orders');
@@ -642,54 +672,60 @@ export default function AdminDashboard() {
                   </tr>
                 ) : (
                   filteredUsers.map((listedUser) => (
-                    <tr key={listedUser.id}>
-                      <td style={{ fontWeight: '700', color: '#111827' }}>{listedUser.first_name} {listedUser.last_name}</td>
-                      <td>{listedUser.email}</td>
-                      <td>
-                        <span
-                          className="rf-dashboard-pill"
-                          style={{
-                            backgroundColor: listedUser.role === 'Admin' ? '#fce7f3' : '#e0e7ff',
-                            color: listedUser.role === 'Admin' ? '#be185d' : '#4338ca',
-                          }}
-                        >
-                          {listedUser.role === 'Admin' ? 'Administrator' : listedUser.role === 'Worker' ? 'Pracownik' : 'Klient'}
-                        </span>
-                      </td>
-                      <td style={{ color: listedUser.is_active ? '#059669' : '#dc2626', fontWeight: '600' }}>
-                        {listedUser.is_active ? 'Aktywny' : 'Zablokowany'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          <button
-                            type="button"
-                            onClick={() => openEditUserModal(listedUser)}
-                            style={{ background: 'none', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}
-                          >
-                            <Edit size={16} />
-                            Edytuj
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingUserId === listedUser.id}
-                            onClick={() => handleDeleteUser(listedUser)}
-                            style={{
-                              background: 'none',
-                              color: '#ef4444',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontWeight: '600',
-                              opacity: deletingUserId === listedUser.id ? 0.65 : 1,
-                              cursor: deletingUserId === listedUser.id ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            <Trash2 size={16} />
-                            {deletingUserId === listedUser.id ? 'Usuwanie...' : 'Usuń'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                    (() => {
+                      const userStatus = getUserStatusMeta(listedUser);
+
+                      return (
+                        <tr key={listedUser.id}>
+                          <td style={{ fontWeight: '700', color: '#111827' }}>{listedUser.first_name} {listedUser.last_name}</td>
+                          <td>{listedUser.email}</td>
+                          <td>
+                            <span
+                              className="rf-dashboard-pill"
+                              style={{
+                                backgroundColor: listedUser.role === 'Admin' ? '#fce7f3' : '#e0e7ff',
+                                color: listedUser.role === 'Admin' ? '#be185d' : '#4338ca',
+                              }}
+                            >
+                              {listedUser.role === 'Admin' ? 'Administrator' : listedUser.role === 'Worker' ? 'Pracownik' : 'Klient'}
+                            </span>
+                          </td>
+                          <td style={{ color: userStatus.color, fontWeight: '600' }}>
+                            {userStatus.label}
+                          </td>
+                          <td>
+                            <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                onClick={() => openEditUserModal(listedUser)}
+                                style={{ background: 'none', color: '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}
+                              >
+                                <Edit size={16} />
+                                Edytuj
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingUserId === listedUser.id}
+                                onClick={() => handleDeleteUser(listedUser)}
+                                style={{
+                                  background: 'none',
+                                  color: '#ef4444',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  fontWeight: '600',
+                                  opacity: deletingUserId === listedUser.id ? 0.65 : 1,
+                                  cursor: deletingUserId === listedUser.id ? 'not-allowed' : 'pointer',
+                                }}
+                              >
+                                <Trash2 size={16} />
+                                {deletingUserId === listedUser.id ? 'Usuwanie...' : 'Usuń'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })()
                   ))
                 )}
               </tbody>
@@ -906,8 +942,16 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Status</label>
-            <select value={editUserForm.is_active ? 'active' : 'blocked'} onChange={(e) => setEditUserForm({ ...editUserForm, is_active: e.target.value === 'active' })} style={fieldStyle}>
+            <label style={labelStyle}>Obecny status</label>
+            <input type="text" readOnly value={editingUser ? getUserStatusMeta(editingUser).label : 'Brak danych'} style={readOnlyStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Ustaw konto jako</label>
+            <select
+              value={editUserForm.is_active ? 'active' : 'blocked'}
+              onChange={(e) => setEditUserForm({ ...editUserForm, is_active: e.target.value === 'active' })}
+              style={fieldStyle}
+            >
               <option value="active">Aktywny</option>
               <option value="blocked">Zablokowany</option>
             </select>
