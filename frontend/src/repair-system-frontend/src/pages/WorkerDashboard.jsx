@@ -37,6 +37,13 @@ const labelStyle = {
   color: '#111827',
 };
 
+const readOnlyStyle = {
+  ...fieldStyle,
+  borderColor: '#e5e7eb',
+  backgroundColor: '#f9fafb',
+  color: '#6b7280',
+};
+
 const secondaryButtonStyle = {
   padding: '10px 16px',
   borderRadius: '10px',
@@ -616,6 +623,11 @@ export default function WorkerDashboard() {
               <label style={labelStyle}>Szacowany termin</label>
               <input type="date" value={editOrderForm.estimated_completion_date} onChange={(e) => setEditOrderForm({ ...editOrderForm, estimated_completion_date: e.target.value })} style={fieldStyle} />
             </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Opis usterki</label>
+            <textarea value={editingOrder?.issue_description || 'Brak opisu usterki.'} readOnly rows="4" style={readOnlyStyle} />
           </div>
 
           <div>

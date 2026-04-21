@@ -884,6 +884,11 @@ export default function AdminDashboard() {
           </div>
 
           <div>
+            <label style={labelStyle}>Opis usterki</label>
+            <textarea value={editingOrder?.issue_description || 'Brak opisu usterki.'} readOnly rows="4" style={readOnlyStyle} />
+          </div>
+
+          <div>
             <label style={labelStyle}>Notatka serwisowa</label>
             <textarea value={editOrderForm.service_note} onChange={(e) => setEditOrderForm({ ...editOrderForm, service_note: e.target.value })} rows="4" placeholder="Dodaj notatkę dla zlecenia..." style={fieldStyle} />
           </div>
