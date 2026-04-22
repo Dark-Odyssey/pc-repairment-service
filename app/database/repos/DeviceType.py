@@ -72,12 +72,3 @@ class DeviceTypeRepo(BaseRepo):
         await self.session.delete(device_type_db)
         await self.session.commit()
         return
-
-
-    async def get_device_type_by_id_rel(self, id: int) -> DeviceTypeORM | None:
-        query = (
-            select(DeviceTypeORM)
-            .where(DeviceTypeORM.id == id)
-        )
-        result = await self.session.execute(query)
-        return result.scalar_one_or_none()

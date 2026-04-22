@@ -29,4 +29,4 @@ async def patch_device_type(session: DataBase, id: int, update_schema: DeviceTyp
 
 @router.get("/{id}", response_model=DeviceTypeDTO, dependencies=[Depends(access_admins_workers)])
 async def get_single_device_type(session: DataBase, id: int):
-    return await DeviceTypeService(session=session).get_device_type_by_id_rel(id)
+    return await DeviceTypeService(session=session).get_device_type_by_id(id)

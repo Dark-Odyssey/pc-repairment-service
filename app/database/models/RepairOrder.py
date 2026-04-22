@@ -42,7 +42,6 @@ class RepairOrdersORM(BaseORM):
     device_type: Mapped["DeviceTypeORM"] = relationship(
         "DeviceTypeORM",
         foreign_keys="[RepairOrdersORM.device_type_id]",
-        back_populates="orders"
     )
     history: Mapped[list["OrderStatusHistoryORM"]] = relationship(
         "OrderStatusHistoryORM",

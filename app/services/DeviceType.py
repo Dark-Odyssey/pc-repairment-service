@@ -48,8 +48,8 @@ class DeviceTypeService:
         
         return await self.__deviceTypeRepo.update_device_type(device_type_db, update_schema)
     
-    async def get_device_type_by_id_rel(self, id: int) -> DeviceTypeORM:
-        device_type_db = await self.__deviceTypeRepo.get_device_type_by_id_rel(id)
+    async def get_device_type_by_id(self, id: int) -> DeviceTypeORM:
+        device_type_db = await self.__deviceTypeRepo.select_device_type_by_id(id)
         if not device_type_db:
             raise HTTPException(status_code=404, detail="Device type doesn't exist!")
         return device_type_db
