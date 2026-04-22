@@ -3,8 +3,9 @@ import { House, Package, Plus, Search, Edit, Settings, UserPlus } from 'lucide-r
 import { useAuth } from '../context/AuthContext';
 import DashboardFrame from '../components/DashboardFrame';
 import Modal from '../components/Modal';
-import { extractCollection } from '../utils/api';
+import { extractApiErrorMessage, extractCollection } from '../utils/api';
 import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
+import { sortCollection, toggleSortConfig } from '../utils/sorting';
 
 const statusMap = {
   Created: { label: 'Utworzone', background: '#f3f4f6', color: '#374151' },
@@ -134,6 +135,27 @@ function getPersonDisplayName(person) {
   return fullName || person.email || 'Brak danych';
 }
 
+function getOrderSortValue(order, key) {
+  switch (key) {
+    case 'order_number':
+      return order.order_number || '';
+    case 'client':
+      return order.client ? `${order.client.first_name || ''} ${order.client.last_name || ''}`.trim() : '';
+    case 'device_model':
+      return order.device_model || '';
+    case 'status':
+      return getStatusLabel(order.status);
+    case 'worker_created':
+      return getPersonDisplayName(order.worker_created);
+    case 'worker_updated':
+      return getPersonDisplayName(order.worker_updated);
+    case 'estimated_completion_date':
+      return order.estimated_completion_date ? new Date(order.estimated_completion_date).getTime() : null;
+    default:
+      return '';
+  }
+}
+
 export default function WorkerDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -154,6 +176,7 @@ export default function WorkerDashboard() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState(emptyEditOrderForm);
   const [editOrderLoading, setEditOrderLoading] = useState(false);
+  const [orderSort, setOrderSort] = useState({ key: null, direction: 'asc' });
 
   useEffect(() => {
     fetchOrders();
@@ -222,7 +245,7 @@ export default function WorkerDashboard() {
         fetchUsers();
       } else {
         const errData = await response.json();
-        alert(`Błąd: ${JSON.stringify(errData)}`);
+        alert(extractApiErrorMessage(errData, 'Nie udało się utworzyć klienta.'));
       }
     } catch (error) {
       console.error(error);
@@ -380,6 +403,29 @@ export default function WorkerDashboard() {
     });
   }, [normalizedQuery, orders]);
 
+  const sortedOrders = useMemo(
+    () => sortCollection(filteredOrders, orderSort, getOrderSortValue),
+    [filteredOrders, orderSort]
+  );
+
+  const renderSortableHeader = (label, key, defaultDirection = 'asc') => {
+    const isActive = orderSort.key === key;
+    const icon = !isActive ? '↕' : orderSort.direction === 'asc' ? '↑' : '↓';
+
+    return (
+      <th aria-sort={isActive ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+        <button
+          type="button"
+          className={`rf-dashboard-sort-button${isActive ? ' rf-dashboard-sort-button--active' : ''}`}
+          onClick={() => setOrderSort((currentSort) => toggleSortConfig(currentSort, key, defaultDirection))}
+        >
+          <span>{label}</span>
+          <span className="rf-dashboard-sort-icon" aria-hidden="true">{icon}</span>
+        </button>
+      </th>
+    );
+  };
+
   const navItems = [
     { key: 'home', label: 'Strona główna', icon: House, to: '/' },
     { key: 'orders', label: 'Zlecenia', icon: Package, active: true, to: '/dashboard/worker' },
@@ -430,13 +476,13 @@ export default function WorkerDashboard() {
           <table className="rf-dashboard-table">
             <thead>
               <tr>
-                <th>Numer zlecenia</th>
-                <th>Klient</th>
-                <th>Sprzęt</th>
-                <th>Status</th>
-                <th>Utworzył</th>
-                <th>Aktualizował</th>
-                <th>Termin</th>
+                {renderSortableHeader('Numer zlecenia', 'order_number', 'desc')}
+                {renderSortableHeader('Klient', 'client')}
+                {renderSortableHeader('Sprzęt', 'device_model')}
+                {renderSortableHeader('Status', 'status')}
+                {renderSortableHeader('Utworzył', 'worker_created')}
+                {renderSortableHeader('Aktualizował', 'worker_updated')}
+                {renderSortableHeader('Termin', 'estimated_completion_date', 'desc')}
                 <th>Akcje</th>
               </tr>
             </thead>
@@ -445,12 +491,12 @@ export default function WorkerDashboard() {
                 <tr>
                   <td colSpan="8" className="rf-dashboard-empty">Ładowanie zleceń...</td>
                 </tr>
-              ) : filteredOrders.length === 0 ? (
+              ) : sortedOrders.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="rf-dashboard-empty">Brak zleceń pasujących do wyszukiwania.</td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => {
+                sortedOrders.map((order) => {
                   const statusInfo = getStatusStyle(order.status);
                   return (
                     <tr key={order.id}>

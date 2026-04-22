@@ -3,8 +3,9 @@ import { House, Package, Plus, Search, Edit, Trash2, Users } from 'lucide-react'
 import { useAuth } from '../context/AuthContext';
 import DashboardFrame from '../components/DashboardFrame';
 import Modal from '../components/Modal';
-import { extractCollection } from '../utils/api';
+import { extractApiErrorMessage, extractCollection } from '../utils/api';
 import { extractRepairOrders, normalizeRepairOrder } from '../utils/repairOrders';
+import { sortCollection, toggleSortConfig } from '../utils/sorting';
 
 const statusMap = {
   Created: { label: 'Utworzone', background: '#f3f4f6', color: '#374151' },
@@ -148,6 +149,22 @@ function getPersonDisplayName(person) {
   return fullName || person.email || 'Brak danych';
 }
 
+function getRoleLabel(role) {
+  if (role === 'Admin') {
+    return 'Administrator';
+  }
+
+  if (role === 'Worker') {
+    return 'Pracownik';
+  }
+
+  if (role === 'User') {
+    return 'Klient';
+  }
+
+  return role || 'Brak danych';
+}
+
 function getUserStatusMeta(listedUser) {
   if (listedUser?.is_active) {
     return {
@@ -178,6 +195,42 @@ function getUserStatusMeta(listedUser) {
   };
 }
 
+function getOrderSortValue(order, key) {
+  switch (key) {
+    case 'order_number':
+      return order.order_number || '';
+    case 'client':
+      return order.client ? `${order.client.first_name || ''} ${order.client.last_name || ''}`.trim() : '';
+    case 'device_model':
+      return order.device_model || '';
+    case 'status':
+      return getStatusLabel(order.status);
+    case 'worker_created':
+      return getPersonDisplayName(order.worker_created);
+    case 'worker_updated':
+      return getPersonDisplayName(order.worker_updated);
+    case 'estimated_completion_date':
+      return order.estimated_completion_date ? new Date(order.estimated_completion_date).getTime() : null;
+    default:
+      return '';
+  }
+}
+
+function getUserSortValue(listedUser, key) {
+  switch (key) {
+    case 'full_name':
+      return `${listedUser.first_name || ''} ${listedUser.last_name || ''}`.trim();
+    case 'email':
+      return listedUser.email || '';
+    case 'role':
+      return getRoleLabel(listedUser.role);
+    case 'status':
+      return getUserStatusMeta(listedUser).label;
+    default:
+      return '';
+  }
+}
+
 export default function AdminDashboard() {
   const { user, logout, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('orders');
@@ -202,6 +255,8 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState(null);
   const [editUserForm, setEditUserForm] = useState(emptyEditUserForm);
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [orderSort, setOrderSort] = useState({ key: null, direction: 'asc' });
+  const [userSort, setUserSort] = useState({ key: null, direction: 'asc' });
 
   useEffect(() => {
     setSearchQuery('');
@@ -276,7 +331,7 @@ export default function AdminDashboard() {
         fetchUsers();
       } else {
         const errData = await response.json();
-        alert(`Błąd: ${JSON.stringify(errData)}`);
+        alert(extractApiErrorMessage(errData, 'Nie udało się utworzyć użytkownika.'));
       }
     } catch (error) {
       console.error(error);
@@ -545,6 +600,34 @@ export default function AdminDashboard() {
     );
   }, [normalizedQuery, staffUsers]);
 
+  const sortedOrders = useMemo(
+    () => sortCollection(filteredOrders, orderSort, getOrderSortValue),
+    [filteredOrders, orderSort]
+  );
+
+  const sortedUsers = useMemo(
+    () => sortCollection(filteredUsers, userSort, getUserSortValue),
+    [filteredUsers, userSort]
+  );
+
+  const renderSortableHeader = (label, key, sortConfig, setSortConfig, defaultDirection = 'asc') => {
+    const isActive = sortConfig.key === key;
+    const icon = !isActive ? '↕' : sortConfig.direction === 'asc' ? '↑' : '↓';
+
+    return (
+      <th aria-sort={isActive ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+        <button
+          type="button"
+          className={`rf-dashboard-sort-button${isActive ? ' rf-dashboard-sort-button--active' : ''}`}
+          onClick={() => setSortConfig((currentSort) => toggleSortConfig(currentSort, key, defaultDirection))}
+        >
+          <span>{label}</span>
+          <span className="rf-dashboard-sort-icon" aria-hidden="true">{icon}</span>
+        </button>
+      </th>
+    );
+  };
+
   const navItems = [
     { key: 'home', label: 'Strona główna', icon: House, to: '/' },
     { key: 'orders', label: 'Wszystkie zlecenia', icon: Package, active: activeTab === 'orders', onClick: () => setActiveTab('orders') },
@@ -593,13 +676,13 @@ export default function AdminDashboard() {
             <table className="rf-dashboard-table">
               <thead>
                 <tr>
-                  <th>Numer zlecenia</th>
-                  <th>Klient</th>
-                  <th>Sprzęt</th>
-                  <th>Status</th>
-                  <th>Utworzył</th>
-                  <th>Aktualizował</th>
-                  <th>Termin</th>
+                  {renderSortableHeader('Numer zlecenia', 'order_number', orderSort, setOrderSort, 'desc')}
+                  {renderSortableHeader('Klient', 'client', orderSort, setOrderSort)}
+                  {renderSortableHeader('Sprzęt', 'device_model', orderSort, setOrderSort)}
+                  {renderSortableHeader('Status', 'status', orderSort, setOrderSort)}
+                  {renderSortableHeader('Utworzył', 'worker_created', orderSort, setOrderSort)}
+                  {renderSortableHeader('Aktualizował', 'worker_updated', orderSort, setOrderSort)}
+                  {renderSortableHeader('Termin', 'estimated_completion_date', orderSort, setOrderSort, 'desc')}
                   <th>Akcje</th>
                 </tr>
               </thead>
@@ -608,12 +691,12 @@ export default function AdminDashboard() {
                   <tr>
                     <td colSpan="8" className="rf-dashboard-empty">Ładowanie zleceń...</td>
                   </tr>
-                ) : filteredOrders.length === 0 ? (
+                ) : sortedOrders.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="rf-dashboard-empty">Brak zleceń pasujących do wyszukiwania.</td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => {
+                  sortedOrders.map((order) => {
                     const statusInfo = getStatusStyle(order.status);
                     return (
                       <tr key={order.id}>
@@ -658,20 +741,20 @@ export default function AdminDashboard() {
             <table className="rf-dashboard-table">
               <thead>
                 <tr>
-                  <th>Imię i nazwisko</th>
-                  <th>E-mail</th>
-                  <th>Rola</th>
-                  <th>Status</th>
+                  {renderSortableHeader('Imię i nazwisko', 'full_name', userSort, setUserSort)}
+                  {renderSortableHeader('E-mail', 'email', userSort, setUserSort)}
+                  {renderSortableHeader('Rola', 'role', userSort, setUserSort)}
+                  {renderSortableHeader('Status', 'status', userSort, setUserSort)}
                   <th>Akcje</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.length === 0 ? (
+                {sortedUsers.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="rf-dashboard-empty">Brak pracowników pasujących do wyszukiwania.</td>
                   </tr>
                 ) : (
-                  filteredUsers.map((listedUser) => (
+                  sortedUsers.map((listedUser) => (
                     (() => {
                       const userStatus = getUserStatusMeta(listedUser);
 
@@ -687,7 +770,7 @@ export default function AdminDashboard() {
                                 color: listedUser.role === 'Admin' ? '#be185d' : '#4338ca',
                               }}
                             >
-                              {listedUser.role === 'Admin' ? 'Administrator' : listedUser.role === 'Worker' ? 'Pracownik' : 'Klient'}
+                              {getRoleLabel(listedUser.role)}
                             </span>
                           </td>
                           <td style={{ color: userStatus.color, fontWeight: '600' }}>

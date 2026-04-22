@@ -894,6 +894,39 @@ img {
   font-weight: 700;
 }
 
+.rf-dashboard-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.rf-dashboard-sort-button:hover {
+  color: #334155;
+}
+
+.rf-dashboard-sort-button--active {
+  color: #0f172a;
+}
+
+.rf-dashboard-sort-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 12px;
+  color: #94a3b8;
+}
+
+.rf-dashboard-sort-button--active .rf-dashboard-sort-icon {
+  color: inherit;
+}
+
 .rf-dashboard-table td {
   padding: 16px 18px;
   color: #334155;
