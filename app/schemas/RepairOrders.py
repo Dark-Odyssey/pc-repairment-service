@@ -43,4 +43,4 @@ class RepairOrderUserDTO(BaseModel):
     created_at: datetime
     device_model: str
     issue_description: str
-    price: int
+    price: int | None = None
