@@ -347,22 +347,29 @@ export default function AdminDashboard() {
       let finalDeviceTypeId = orderForm.device_type_id;
 
       if (showNewDeviceType && newDeviceTypeForm.device_type) {
-        const dtResponse = await authFetch('/api/v1/device-type/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newDeviceTypeForm),
-        });
+        const typedName = newDeviceTypeForm.device_type.trim().toLowerCase();
+        const existingType = deviceTypes.find(dt => dt.device_type.toLowerCase() === typedName);
 
-        if (dtResponse.ok) {
-          const dtData = await dtResponse.json();
-          finalDeviceTypeId = dtData.id;
-          fetchDeviceTypes();
+        if (existingType) {
+          finalDeviceTypeId = existingType.id;
         } else {
-          const errData = await dtResponse.json();
-          alert(`Błąd typu urządzenia: ${JSON.stringify(errData)}`);
-          return;
+          const dtResponse = await authFetch('/api/v1/device-type/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newDeviceTypeForm),
+          });
+
+          if (dtResponse.ok) {
+            const dtData = await dtResponse.json();
+            finalDeviceTypeId = dtData.id;
+            fetchDeviceTypes();
+          } else {
+            const errData = await dtResponse.json();
+            alert(`Błąd typu urządzenia: ${JSON.stringify(errData)}`);
+            return;
+          }
         }
       }
 
