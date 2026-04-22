@@ -8,6 +8,7 @@ class RepairOrdersCreateDTO(BaseModel):
     device_type_id: int
     device_model: str = Field(max_length=100)
     issue_description: str = Field(max_length=256)
+    price: int | None = None
 
 class RepairOrdersCreateServiceDTO(RepairOrdersCreateDTO):
     order_number: str
@@ -28,6 +29,7 @@ class RepairOrdersDTO(RepairOrdersCreateDTO):
 class RepairOrderUpdateDTO(BaseModel):
     device_model: str | None = Field(default=None, max_length=100)
     issue_description: str | None = Field(default=None, max_length=256)
+    price: int | None = None
     estimated_completion_date: date | None = None
     status: StatusEnum | None = None
     service_note: str | None = Field(default=None, max_length=256)
@@ -41,3 +43,4 @@ class RepairOrderUserDTO(BaseModel):
     created_at: datetime
     device_model: str
     issue_description: str
+    price: int
