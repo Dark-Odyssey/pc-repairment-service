@@ -4,3 +4,6 @@
 **/.venv
 **/certs/
 .idea
+**/.vite/
+**/coverage/
+**/.eslintcache
