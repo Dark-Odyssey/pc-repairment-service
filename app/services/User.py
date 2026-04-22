@@ -11,6 +11,7 @@ from core.config import settings
 from schemas import  UserCreateAdminDTO, UserUpdate, UserLogin, Tokens, UserRegisterDTO, UserCreateWorkerDTO, UserFilterWorkerDTO, UpdatePasswordDTO, UserFilterAdminDTO, UserAdminPaginationDTO, UserWorkerPaginationDTO
 from security import Crypt, JWTHandler
 from database.repos import UserRepo, PasswordResetRepo
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -18,6 +19,7 @@ class UserService:
 
 
     def __init__(self, session: AsyncSession) -> None:
+        self.session = session
         self.__userRepo = UserRepo(session=session)
         self.__passwordResetRepo = PasswordResetRepo(session=session)
         self.__emailHandler = EmailHandler()
@@ -28,27 +30,25 @@ class UserService:
 
 
     async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> UserORM:
-        user_with_same_email = await self.__userRepo.select_user_by_email(email=user.email)
-        user_with_same_phone = await self.__userRepo.select_user_by_phone_number(phone_number=user.phone_number)
+        try:
+            if type(user) is UserRegisterDTO:
+                hashed_password = await run_in_threadpool(Crypt.hash_password, user.password)
+                user.password = hashed_password
+                return await self.__userRepo.create_user(user)
+            elif type(user) is UserCreateAdminDTO:
+                user_db = await self.__userRepo.create_user_admin(user)
+            else:
+                user_db = await self.__userRepo.create_user_worker(user)
+            token = token_hex(32)
+            hashed_token = sha256(token.encode()).hexdigest()
 
-        if user_with_same_email or user_with_same_phone:
-            raise HTTPException(status_code=400, detail="User with same credentials exists!")
-
-        if type(user) is UserRegisterDTO:
-            hashed_password = await run_in_threadpool(Crypt.hash_password, user.password)
-            user.password = hashed_password
-            return await self.__userRepo.create_user(user)
-        elif type(user) is UserCreateAdminDTO:
-            user_db = await self.__userRepo.create_user_admin(user)
-        else:
-            user_db = await self.__userRepo.create_user_worker(user)
-        token = token_hex(32)
-        hashed_token = sha256(token.encode()).hexdigest()
-
-        await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
-        await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
-        await self.__emailHandler.send_token_link(user_db=user_db, token=token)
-        return user_db
+            await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
+            await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
+            await self.__emailHandler.send_token_link(user_db=user_db, token=token)
+            return user_db
+        except IntegrityError:
+            await self.session.rollback()
+            raise HTTPException(status_code=400, detail="User with same creds already exists!")
 
 
     async def patch_user(self, user_id, user_schema: UserUpdate) -> UserORM:

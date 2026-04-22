@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from .RepairOrders import RepairOrdersDTO, RepairOrderUserDTO
 from .relationship import RepairOrderUserRelDTO, RepairOrdersRelDTO
 from .DeviceType import DeviceTypeDTO
-from .User import UserOutputDTO, UserFullOutput
+from .User import UserOutputDTO, UserFullOutput, UserOutputWorkerDTO
 from tools.types import RoleEnum, StatusEnum
 
 
@@ -60,7 +60,7 @@ class DeviceTypeFilterDTO(BaseModel):
 
 
 class UserWorkerPaginationDTO(BaseModel):
-    result: Sequence[UserOutputDTO]
+    result: Sequence[UserOutputWorkerDTO]
     pagination: PaginationDTO
 
 

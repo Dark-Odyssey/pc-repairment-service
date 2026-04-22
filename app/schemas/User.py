@@ -21,7 +21,7 @@ class UserCreateAdminDTO(UserCreateWorkerDTO):
     role: RoleEnum
 
 class UserCreateFullDTO(UserCreateAdminDTO):
-    password: str = Field(min_length=8, max_length=20)
+    password: str
     is_active: bool = True
 
 class UserOutputDTO(BaseModel):
@@ -31,12 +31,12 @@ class UserOutputDTO(BaseModel):
     last_name: str
     email: EmailStr
     phone_number: PhoneNumber
+    role: RoleEnum
 
 class UserOutputWorkerDTO(UserOutputDTO):
     id: int
 
 class UserFullOutput(UserOutputWorkerDTO):
-    role: RoleEnum
     is_active: bool
     created_at: datetime
     updated_at: datetime

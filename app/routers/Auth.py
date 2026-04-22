@@ -20,17 +20,19 @@ async def login(user: UserLogin, response: Response, session: DataBase):
         key=settings.REFRESH_COOKIE_NAME,
         value=tokens.refresh_token,
         httponly=True,
-        secure=True,
+        secure= False, #change in prod
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     response.set_cookie(
         key=settings.CSRF_COOKIE_NAME,
         value=tokens.csrf_token,
         httponly=False,
-        secure=True,
+        secure=False,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     return {
         "token_type": "Bearer",
@@ -47,17 +49,19 @@ async def refresh(
         key=settings.REFRESH_COOKIE_NAME,
         value=tokens.refresh_token,
         httponly=True,
-        secure=True,
+        secure= False,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     response.set_cookie(
         key=settings.CSRF_COOKIE_NAME,
         value=tokens.csrf_token,
         httponly=False,
-        secure=True,
+        secure=False,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_LIFE
+        max_age=settings.REFRESH_TOKEN_LIFE,
+        path="/api/v1/auth/refresh"
     )
     return {
         "token_type": "Bearer",

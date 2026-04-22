@@ -20,6 +20,7 @@ class RepairOrdersORM(BaseORM):
     status: Mapped[StatusEnum]
     access_code_hash: Mapped[str]
     service_note: Mapped[str_256] = mapped_column(nullable=True)
+    price: Mapped[int] = mapped_column(nullable=True)
     created_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime]
@@ -41,7 +42,6 @@ class RepairOrdersORM(BaseORM):
     device_type: Mapped["DeviceTypeORM"] = relationship(
         "DeviceTypeORM",
         foreign_keys="[RepairOrdersORM.device_type_id]",
-        back_populates="orders"
     )
     history: Mapped[list["OrderStatusHistoryORM"]] = relationship(
         "OrderStatusHistoryORM",
