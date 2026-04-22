@@ -85,7 +85,9 @@ class RepairOrdersService:
                 old_estimated_completion_date=repair_order_db.estimated_completion_date,
                 new_estimated_completion_date=schema.estimated_completion_date
             )
-        if schema.status == StatusEnum.READY_FOR_COLLECTION:
+        
+        completed_history_db = await self.__orderStatusHistoryRepo.select_by_status(StatusEnum.READY_FOR_COLLECTION)
+        if schema.status == StatusEnum.READY_FOR_COLLECTION and not completed_history_db:
             await self.__emailHandler.send_new_status(order_number=repair_order_db.order_number, user_db=repair_order_db.client)
 
         return await self.__repairOrdersRepo.update_repair_order(repair_order_db=repair_order_db, schema=schema, worker_id=worker_id)

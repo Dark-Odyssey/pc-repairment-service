@@ -74,6 +74,23 @@ function formatDate(value, withTime = false) {
   return withTime ? date.toLocaleString('pl-PL') : date.toLocaleDateString('pl-PL');
 }
 
+function formatPrice(value) {
+  if (value === null || value === undefined || value === '') {
+    return 'Do ustalenia';
+  }
+
+  const amount = Number(value);
+  if (Number.isNaN(amount)) {
+    return 'Do ustalenia';
+  }
+
+  return new Intl.NumberFormat('pl-PL', {
+    style: 'currency',
+    currency: 'PLN',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 function getHistoryLines(entry) {
   const lines = [];
 
@@ -316,6 +333,10 @@ export default function ClientDashboard() {
                   <label>Status naprawy</label>
                   <strong>{statusInfo.label}</strong>
                 </div>
+                <div className="rf-dashboard-stat">
+                  <label>Cena</label>
+                  <strong>{formatPrice(orderData.price)}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -339,6 +360,7 @@ export default function ClientDashboard() {
               <h3>Harmonogram naprawy</h3>
               <p>Przyjęcie: {formatDate(orderData.created_at)}</p>
               <p style={{ marginTop: '10px' }}>Szacowany termin zakończenia: {formatDate(orderData.estimated_completion_date)}</p>
+              <p style={{ marginTop: '10px' }}>Cena: {formatPrice(orderData.price)}</p>
             </div>
           </div>
 
@@ -424,6 +446,10 @@ export default function ClientDashboard() {
                         <div>
                           <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Planowane zakończenie</div>
                           <div style={{ fontWeight: '600', color: '#111827' }}>{formatDate(order.estimated_completion_date)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>Cena</div>
+                          <div style={{ fontWeight: '600', color: '#111827' }}>{formatPrice(order.price)}</div>
                         </div>
                       </div>
 

@@ -19,6 +19,7 @@ const statusMap = {
 
 const emptyEditOrderForm = {
   status: 'Created',
+  price: '',
   estimated_completion_date: '',
   service_note: '',
 };
@@ -169,7 +170,7 @@ export default function WorkerDashboard() {
   const [isCreatingClient, setIsCreatingClient] = useState(false);
 
   const [clientForm, setClientForm] = useState({ first_name: '', last_name: '', email: '', phone_number: '' });
-  const [orderForm, setOrderForm] = useState({ client_id: '', device_type_id: '', device_model: '', issue_description: '' });
+  const [orderForm, setOrderForm] = useState({ client_id: '', device_type_id: '', device_model: '', issue_description: '', price: '' });
   const [newDeviceTypeForm, setNewDeviceTypeForm] = useState({ device_type: '', description: '' });
   const [showNewDeviceType, setShowNewDeviceType] = useState(false);
 
@@ -302,12 +303,13 @@ export default function WorkerDashboard() {
           device_type_id: parseInt(finalDeviceTypeId, 10),
           device_model: orderForm.device_model,
           issue_description: orderForm.issue_description,
+          price: orderForm.price === '' ? null : parseInt(orderForm.price, 10),
         }),
       });
 
       if (response.ok) {
         setIsOrderModalOpen(false);
-        setOrderForm({ client_id: '', device_type_id: '', device_model: '', issue_description: '' });
+        setOrderForm({ client_id: '', device_type_id: '', device_model: '', issue_description: '', price: '' });
         setShowNewDeviceType(false);
         setNewDeviceTypeForm({ device_type: '', description: '' });
         fetchOrders();
@@ -325,6 +327,7 @@ export default function WorkerDashboard() {
     setEditingOrder(normalizeRepairOrder(order));
     setEditOrderForm({
       status: order.status || 'Created',
+      price: order.price ?? '',
       estimated_completion_date: toDateInputValue(order.estimated_completion_date),
       service_note: order.service_note || '',
     });
@@ -340,6 +343,7 @@ export default function WorkerDashboard() {
       setEditingOrder(data);
       setEditOrderForm({
         status: data.status || 'Created',
+        price: data.price ?? '',
         estimated_completion_date: toDateInputValue(data.estimated_completion_date),
         service_note: data.service_note || '',
       });
@@ -367,6 +371,7 @@ export default function WorkerDashboard() {
       const payload = {
         status: editOrderForm.status,
         service_note: editOrderForm.service_note,
+        price: editOrderForm.price === '' ? null : parseInt(editOrderForm.price, 10),
       };
 
       if (editOrderForm.estimated_completion_date) {
@@ -635,6 +640,18 @@ export default function WorkerDashboard() {
             <label style={labelStyle}>Opis usterki</label>
             <textarea required value={orderForm.issue_description} onChange={(e) => setOrderForm({ ...orderForm, issue_description: e.target.value })} rows="4" style={fieldStyle} />
           </div>
+          <div>
+            <label style={labelStyle}>Cena (PLN)</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={orderForm.price}
+              onChange={(e) => setOrderForm({ ...orderForm, price: e.target.value })}
+              placeholder="Np. 199"
+              style={fieldStyle}
+            />
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
             <button type="button" onClick={() => setIsOrderModalOpen(false)} style={secondaryButtonStyle}>Anuluj</button>
             <button type="submit" style={primaryButtonStyle}>Zapisz zlecenie</button>
@@ -675,6 +692,18 @@ export default function WorkerDashboard() {
             <div>
               <label style={labelStyle}>Szacowany termin</label>
               <input type="date" value={editOrderForm.estimated_completion_date} onChange={(e) => setEditOrderForm({ ...editOrderForm, estimated_completion_date: e.target.value })} style={fieldStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Cena (PLN)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={editOrderForm.price}
+                onChange={(e) => setEditOrderForm({ ...editOrderForm, price: e.target.value })}
+                placeholder="Np. 199"
+                style={fieldStyle}
+              />
             </div>
           </div>
 
