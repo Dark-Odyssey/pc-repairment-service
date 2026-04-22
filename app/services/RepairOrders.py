@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import RepairOrdersORM
 from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo, OrderStatusHistoryRepo
 from tools.email import EmailHandler
+from tools.types import StatusEnum
 from core.config import settings
 from hashids import Hashids
 from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrderUpdateDTO, OrderCredsDTO, RepairOrdersPaginationDTO, RepairOrdersUserPaginationDTO
@@ -60,7 +61,7 @@ class RepairOrdersService:
         repair_order_db = await self.__repairOrdersRepo.select_repair_order_by_id(id)
         if not repair_order_db:
             raise HTTPException(status_code=404,  detail="Order not found!")
-
+        
         if repair_order_db.status != schema.status and repair_order_db.estimated_completion_date != schema.estimated_completion_date:
             await self.__orderStatusHistoryRepo.create_order_status_history(
                 repair_order_id=repair_order_db.id,
@@ -84,6 +85,8 @@ class RepairOrdersService:
                 old_estimated_completion_date=repair_order_db.estimated_completion_date,
                 new_estimated_completion_date=schema.estimated_completion_date
             )
+        if schema.status == StatusEnum.READY_FOR_COLLECTION:
+            await self.__emailHandler.send_new_status(order_number=repair_order_db.order_number, user_db=repair_order_db.client)
 
         return await self.__repairOrdersRepo.update_repair_order(repair_order_db=repair_order_db, schema=schema, worker_id=worker_id)
 

@@ -2,7 +2,7 @@ from core.config import settings
 from fastapi import HTTPException
 from database.models import UserORM
 from aiosmtplib import send
-from .html import reset_password_html, send_repair_order_creds_html
+from .html import reset_password_html, send_repair_order_creds_html, completed_repair_order
 from email.message import EmailMessage
 
 
@@ -11,6 +11,7 @@ from email.message import EmailMessage
 class EmailHandler: 
     __sender_email = settings.EMAIL
     __sender_password = settings.EMAIL_KEY
+
     async def send_token_link(self, user_db: UserORM, token: str) -> None:
         link = f"http://localhost:5500/nowe-haslo?token={token}"
         email = EmailMessage()
@@ -22,8 +23,16 @@ class EmailHandler:
         await self.__send_email(email=email, to_email=user_db.email)
 
 
-    async def send_new_status(self) -> None:
-        pass
+    async def send_new_status(self, order_number: str, user_db: UserORM) -> None:
+        email = EmailMessage()
+        email["Subject"] = "Repair Order Completed"
+        email["From"] = self.__sender_email
+        email["To"] = user_db.email
+        email.set_content(f"Your repair order N {order_number} Completed!\n\n You Can take device in the office")
+        email.add_alternative(completed_repair_order(order_number=order_number), subtype="html")
+        await self.__send_email(email=email, to_email=user_db.email)
+
+
 
 
     async def send_repair_order_creds(self, user_db: UserORM, order_number: str, access_code: str):
