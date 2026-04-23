@@ -12,25 +12,25 @@ def reset_password_html(link: str) -> str:
                 PC Repairment Service
                 </p>
                 <h1 style="margin:8px 0 0;font-size:30px;line-height:38px;font-weight:700;">
-                Potwierdzenie adresu e-mail
+                Ustawienie hasła
                 </h1>
             </td>
             </tr>
             <tr>
             <td style="padding:36px 40px 24px;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
                 <p style="margin:0 0 12px;font-size:14px;line-height:20px;color:#2563eb;font-weight:bold;letter-spacing:0.4px;">
-                Bezpieczna aktywacja konta
+                Bezpieczny dostęp do konta
                 </p>
                 <h2 style="margin:0 0 16px;font-size:28px;line-height:36px;color:#0f172a;">
-                Witamy serdecznie
+                Wybierz nowe hasło
                 </h2>
                 <p style="margin:0 0 16px;font-size:16px;line-height:24px;">
-                Twoje konto zostało utworzone. Kliknij poniższy przycisk, aby potwierdzić swój adres e-mail.
+                Kliknij poniższy przycisk, aby ustawić nowe hasło do swojego konta. Ten link możesz otrzymać zarówno przy pierwszej aktywacji konta, jak i podczas zmiany hasła.
                 </p>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 8px;background:#f8fafc;border:1px solid #dbe4f0;border-radius:12px; border-collapse: separate;">
                 <tr>
                     <td style="padding:18px 20px;font-size:14px;line-height:22px;color:#475569;">
-                    Po potwierdzeniu adresu e-mail zyskasz pełny dostęp do funkcji konta i powiadomień związanych z naprawą.
+                    Po zapisaniu nowego hasła będziesz mógł bezpiecznie zalogować się do konta i korzystać z jego funkcji.
                     </td>
                 </tr>
                 </table>
@@ -39,13 +39,13 @@ def reset_password_html(link: str) -> str:
                     <td bgcolor="#111827" style="border-radius:10px;">
                     <a href="{link}"
                         style="display:inline-block;padding:14px 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#ffffff;text-decoration:none;font-weight:bold;">
-                        Potwierdź adres e-mail
+                        Ustaw nowe hasło
                     </a>
                     </td>
                 </tr>
                 </table>
                 <p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#6b7280;">
-                Jeśli to nie Ty zakładałeś konto, możesz zignorować tę wiadomość.
+                Jeśli nie prosiłeś o ustawienie lub zmianę hasła, możesz zignorować tę wiadomość.
                 </p>
                 <p style="margin:20px 0 0;font-size:13px;line-height:20px;color:#94a3b8;">
                 Jeśli przycisk nie działa, skopiuj i wklej ten link do przeglądarki: <span style="color:#2563eb;">{link}</span>
@@ -58,7 +58,7 @@ def reset_password_html(link: str) -> str:
                 PC Repairment Service
                 </p>
                 <p style="margin:0 0 10px;font-size:13px;line-height:20px;color:#64748b;">
-                Dziękujemy za zaufanie. Dbamy o bezpieczną i sprawną komunikację dotyczącą Twojego konta oraz zgłoszeń serwisowych.
+                Dbamy o bezpieczny dostęp do Twojego konta oraz sprawną komunikację dotyczącą zgłoszeń serwisowych.
                 </p>
                 <p style="margin:0;font-size:12px;line-height:18px;color:#94a3b8;">
                 © 2026 PC Repairment Service. All rights reserved.
