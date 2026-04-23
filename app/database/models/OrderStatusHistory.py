@@ -14,5 +14,5 @@ class OrderStatusHistoryORM(BaseORM):
     new_status: Mapped[StatusEnum] = mapped_column(nullable=True)
     old_estimated_completion_date: Mapped[date] = mapped_column(nullable=True)
     new_estimated_completion_date: Mapped[date] = mapped_column(nullable=True)
-    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    changed_by_employee_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="NO ACTION"))
     changed_at: Mapped[datetime]
