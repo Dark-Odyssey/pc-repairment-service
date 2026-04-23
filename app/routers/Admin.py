@@ -1,8 +1,8 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends,BackgroundTasks
 from core.database import DataBase
 from services import UserService
-from schemas import UserFilterAdminDTO, UserCreateAdminDTO, UserUpdate, UserFullOutput, UserOrderFullRelDTO, UserAdminPaginationDTO
+from schemas import UserFilterAdminDTO, UserCreateAdminDTO, UserUpdate, UserFullOutput, UserOrderFullRelDTO, UserAdminPaginationDTO, UserFullOutput
 from protect.roleChecker import access_admins
 
 
@@ -25,10 +25,10 @@ async def delete_user(user_id: int, session: DataBase, user_who_asked_id: Annota
 
 
 @router.post("/users", response_model=UserFullOutput, dependencies=[Depends(access_admins)])
-async def create_user(user: UserCreateAdminDTO, session: DataBase):
-    return await UserService(session=session).register_new_user(user)
+async def create_user(user: UserCreateAdminDTO, session: DataBase, bg_tasks: BackgroundTasks):
+    return await UserService(session=session).register_new_user(user=user, bg_tasks=bg_tasks)
 
 
-@router.get("/users/{id}", response_model=UserOrderFullRelDTO, dependencies=[Depends(access_admins)])
+@router.get("/users/{id}", response_model=UserFullOutput, dependencies=[Depends(access_admins)])
 async def get_single_user(session: DataBase, id: int):
-    return await UserService(session=session).get_user_by_id_rel(id)
+    return await UserService(session=session).get_user(id)
