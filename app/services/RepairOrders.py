@@ -1,7 +1,7 @@
 from typing import Sequence
 from hashlib import sha256
 from secrets import token_hex
-from fastapi import HTTPException
+from fastapi import HTTPException,BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import RepairOrdersORM
 from database.repos import RepairOrdersRepo, UserRepo, DeviceTypeRepo, OrderStatusHistoryRepo
@@ -23,7 +23,7 @@ class RepairOrdersService:
         self.__orderStatusHistoryRepo = OrderStatusHistoryRepo(session=session)
 
 
-    async def create_order(self, worker_id: int, schema: RepairOrdersCreateDTO) -> RepairOrdersORM:
+    async def create_order(self, worker_id: int, schema: RepairOrdersCreateDTO, bg_tasks: BackgroundTasks) -> RepairOrdersORM:
         client_db = await self.__userRepo.select_user_by_id(user_id=schema.client_id)
         if not client_db:
             raise HTTPException(status_code=404, detail="Client doesn't exist!")
@@ -36,7 +36,7 @@ class RepairOrdersService:
         repair_order_db = await self.__repairOrdersRepo.create_repair_order(schema=schema, worker_id=worker_id, access_code_hash=hashed_token)
         order_number = self.__hashIds.encode(repair_order_db.id)
         repair_order_db.order_number = order_number
-        await self.__emailHandler.send_repair_order_creds(user_db=client_db, order_number=order_number, access_code=token)
+        bg_tasks.add_task(self.__emailHandler.send_repair_order_creds, user_email=client_db.email, order_number=order_number, access_code=token)
         await self.__orderStatusHistoryRepo.create_order_status_history(repair_order_id=repair_order_db.id, new_status=repair_order_db.status, changed_by_employee_id=worker_id)
         return repair_order_db
 
@@ -57,11 +57,13 @@ class RepairOrdersService:
             raise HTTPException(status_code=404,  detail="Order not found!")
         await self.__repairOrdersRepo.remove_repair_order(repair_order_db)
     
-    async def update_order(self, id: int, worker_id: int, schema: RepairOrderUpdateDTO) -> RepairOrdersORM:
+    async def update_order(self, id: int, worker_id: int, schema: RepairOrderUpdateDTO, bg_tasks: BackgroundTasks) -> RepairOrdersORM:
         repair_order_db = await self.__repairOrdersRepo.select_repair_order_by_id(id)
         if not repair_order_db:
             raise HTTPException(status_code=404,  detail="Order not found!")
         
+        completed_history_db = await self.__orderStatusHistoryRepo.select_by_status(StatusEnum.READY_FOR_COLLECTION, repair_order_id=repair_order_db.id)
+
         if repair_order_db.status != schema.status and repair_order_db.estimated_completion_date != schema.estimated_completion_date:
             await self.__orderStatusHistoryRepo.create_order_status_history(
                 repair_order_id=repair_order_db.id,
@@ -86,9 +88,8 @@ class RepairOrdersService:
                 new_estimated_completion_date=schema.estimated_completion_date
             )
         
-        completed_history_db = await self.__orderStatusHistoryRepo.select_by_status(StatusEnum.READY_FOR_COLLECTION)
         if schema.status == StatusEnum.READY_FOR_COLLECTION and not completed_history_db:
-            await self.__emailHandler.send_new_status(order_number=repair_order_db.order_number, user_db=repair_order_db.client)
+            bg_tasks.add_task(self.__emailHandler.send_new_status, order_number=repair_order_db.order_number, user_email=repair_order_db.client.email)
 
         return await self.__repairOrdersRepo.update_repair_order(repair_order_db=repair_order_db, schema=schema, worker_id=worker_id)
 

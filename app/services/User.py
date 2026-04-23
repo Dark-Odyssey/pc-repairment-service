@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
-from fastapi import HTTPException
+from fastapi import HTTPException, BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 from hashlib import sha256
 from tools.email import EmailHandler
@@ -29,12 +29,12 @@ class UserService:
         return await self.__userRepo.get_all_users(filters)
 
 
-    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO) -> UserORM:
+    async def register_new_user(self, user: UserRegisterDTO | UserCreateWorkerDTO | UserCreateAdminDTO, bg_tasks: BackgroundTasks) -> UserORM:
         try:
             if type(user) is UserRegisterDTO:
                 hashed_password = await run_in_threadpool(Crypt.hash_password, user.password)
                 user.password = hashed_password
-                return await self.__userRepo.create_user(user)
+                user_db = await self.__userRepo.create_user(user)
             elif type(user) is UserCreateAdminDTO:
                 user_db = await self.__userRepo.create_user_admin(user)
             else:
@@ -44,7 +44,7 @@ class UserService:
 
             await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
             await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
-            await self.__emailHandler.send_token_link(user_db=user_db, token=token)
+            bg_tasks.add_task(self.__emailHandler.send_token_link, user_email=user_db.email, token=token)
             return user_db
         except IntegrityError:
             await self.session.rollback()
@@ -85,7 +85,7 @@ class UserService:
         return await JWTHandler.generate_tokens(user_db=user_db)
 
 
-    async def password_reset(self, user_email: EmailStr):
+    async def password_reset(self, user_email: EmailStr, bg_tasks: BackgroundTasks):
         user_db = await self.__userRepo.select_user_by_email(email=user_email)
 
         if not user_db:
@@ -97,7 +97,7 @@ class UserService:
         
         await self.__passwordResetRepo.delete_all_previous_tokens(user_id=user_db.id)
         await self.__passwordResetRepo.insert_token(user_id=user_db.id, hashed_token=hashed_token)
-        await self.__emailHandler.send_token_link(user_db=user_db, token=token)
+        bg_tasks.add_task(self.__emailHandler.send_token_link, user_email=user_email, token=token)
 
         return
         
