@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import EmailStr
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from schemas.User import UserOutputDTO
 from core.config import settings
 from core.database import DataBase
@@ -70,8 +70,8 @@ async def refresh(
 
 
 @router.post("/register", response_model=UserOutputDTO)
-async def create_users(user: UserRegisterDTO, session: DataBase):
-    return await UserService(session=session).register_new_user(user)
+async def create_users(user: UserRegisterDTO, session: DataBase, bg_tasks: BackgroundTasks):
+    return await UserService(session=session).register_new_user(user=user, bg_tasks=bg_tasks)
 
 
 @router.post("/logout", dependencies=[Depends(get_user_from_refresh_token)])
@@ -86,8 +86,8 @@ async def logout(
 
 
 @router.post("/password-reset", status_code=201)
-async def reset_password(email: EmailStr, session: DataBase):
-    await UserService(session=session).password_reset(user_email=email)
+async def reset_password(email: EmailStr, session: DataBase, bg_tasks: BackgroundTasks):
+    await UserService(session=session).password_reset(user_email=email, bg_tasks=bg_tasks)
     return 
 
 

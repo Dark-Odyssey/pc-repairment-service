@@ -27,24 +27,24 @@ class RepairOrdersORM(BaseORM):
     updated_at: Mapped[datetime]
 
     client: Mapped["UserORM"] = relationship(
-        "UserORM",
-    foreign_keys="[RepairOrdersORM.client_id]",
+        UserORM,
+        foreign_keys="[RepairOrdersORM.client_id]",
         back_populates="orders"
     )
     worker_created: Mapped["UserORM"] = relationship(
-        "UserORM",
+        UserORM,
         foreign_keys="[RepairOrdersORM.created_by_employee_id]"
     )
     worker_updated: Mapped["UserORM"] = relationship(
-        "UserORM",
+        UserORM,
         foreign_keys="[RepairOrdersORM.updated_by_employee_id]"
     )
     device_type: Mapped["DeviceTypeORM"] = relationship(
-        "DeviceTypeORM",
+        DeviceTypeORM,
         foreign_keys="[RepairOrdersORM.device_type_id]",
     )
     history: Mapped[list["OrderStatusHistoryORM"]] = relationship(
-        "OrderStatusHistoryORM",
+        OrderStatusHistoryORM,
         foreign_keys="[OrderStatusHistoryORM.repair_order_id]",
         cascade="all, delete-orphan",
         passive_deletes=True

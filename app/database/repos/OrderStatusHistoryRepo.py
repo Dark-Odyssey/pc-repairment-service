@@ -1,4 +1,6 @@
 from datetime import datetime, date
+from typing import Sequence
+from sqlalchemy import select
 from database.models import OrderStatusHistoryORM
 from .BaseRepo import BaseRepo
 from tools.types import StatusEnum
@@ -28,3 +30,12 @@ class OrderStatusHistoryRepo(BaseRepo):
         await self.session.flush()
         await self.session.refresh(order_status_history_db)
         return order_status_history_db
+    
+    async def select_by_status(self, status: StatusEnum, repair_order_id: int) -> OrderStatusHistoryORM | None:
+        query = (
+            select(OrderStatusHistoryORM)
+            .where(OrderStatusHistoryORM.new_status == status)
+            .where(OrderStatusHistoryORM.repair_order_id == repair_order_id)
+        )
+        result = await self.session.execute(query)
+        return result.scalars().first()

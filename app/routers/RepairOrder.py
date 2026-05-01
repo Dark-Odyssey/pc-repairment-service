@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from services import RepairOrdersService
 from core.database import DataBase
 from schemas import RepairOrdersCreateDTO, RepairOrdersFilterDTO, RepairOrdersRelDTO, RepairOrderUpdateDTO, RepairOrdersHistRelDTO, RepairOrdersPaginationDTO
@@ -11,9 +11,10 @@ router = APIRouter(prefix="/repair-order", tags=["Repair Orders"])
 async def create_repair_order(
     session: DataBase,
     worker_id: Annotated[int, Depends(access_admins_workers)],
-    schema: RepairOrdersCreateDTO
+    schema: RepairOrdersCreateDTO,
+    bg_tasks: BackgroundTasks
 ):
-    return await RepairOrdersService(session=session).create_order(worker_id=worker_id, schema=schema)
+    return await RepairOrdersService(session=session).create_order(worker_id=worker_id, schema=schema, bg_tasks=bg_tasks)
 
 
 @router.get("/", dependencies=[Depends(access_admins_workers)], response_model=RepairOrdersPaginationDTO)
@@ -39,6 +40,7 @@ async def patch_orders(
     session: DataBase,
     id: int,
     schema: RepairOrderUpdateDTO,
-    worker_id: Annotated[int, Depends(access_admins_workers)]
+    worker_id: Annotated[int, Depends(access_admins_workers)],
+    bg_tasks: BackgroundTasks
 ):
-    return await RepairOrdersService(session=session).update_order(id=id, worker_id=worker_id, schema=schema)
+    return await RepairOrdersService(session=session).update_order(id=id, worker_id=worker_id, schema=schema, bg_tasks=bg_tasks)
