@@ -3,11 +3,12 @@ from functools import cached_property
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-HOME_PATH = Path(__file__).parent.parent.parent
+HOME_PATH = Path(__file__).parent.parent
 
 
 
 class Settings(BaseSettings):
+
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
@@ -34,7 +35,7 @@ class Settings(BaseSettings):
     @cached_property
     def PRIVATE_KEY(self) -> str:
         return self.PATH_PRIV_KEY.read_text()
-    
+
     @cached_property
     def PUBLIC_KEY(self) -> str:
         return self.PATH_PUB_KEY.read_text()

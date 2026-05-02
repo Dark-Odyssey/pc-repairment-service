@@ -13,7 +13,7 @@ class EmailHandler:
     __sender_password = settings.EMAIL_KEY
 
     async def send_token_link(self, user_email: str, token: str) -> None:
-        link = f"http://localhost:5500/nowe-haslo?token={token}"
+        link = f"http://localhost/nowe-haslo?token={token}"
         email = EmailMessage()
         email["Subject"] = "Password reset"
         email["From"] = self.__sender_email

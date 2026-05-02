@@ -1,0 +1,11 @@
+**/*.env
+**/__pycache__/
+**/venv
+**/.venv
+**/certs/
+.idea
+**/.vite/
+**/coverage/
+**/.eslintcache
+.git
+.gitignore
